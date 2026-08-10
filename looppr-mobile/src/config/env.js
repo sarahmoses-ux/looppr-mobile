@@ -10,6 +10,10 @@ export const env = {
   // Flip to false once the Node/Express backend is live — every services/api/*
   // module is written against the same interface for both.
   useMockApi: (extra.useMockApi ?? process.env.EXPO_PUBLIC_USE_MOCK_API ?? 'true') !== 'false',
+  // Separate from useMockApi above: customer (residential) auth now talks to
+  // the real looppr-backend while every other domain/role stays on the mock
+  // in-memory db until they get wired up the same way.
+  useMockCustomerAuth: (extra.useMockCustomerAuth ?? process.env.EXPO_PUBLIC_USE_MOCK_CUSTOMER_AUTH ?? 'true') !== 'false',
   googleMapsApiKey: extra.googleMapsApiKey ?? process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '',
 };
 
