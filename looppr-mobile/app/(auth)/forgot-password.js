@@ -24,38 +24,25 @@ function ServerError({ message }) {
   );
 }
 
-export default function ForgotPassword() {
-  const { role: rawRole } = useLocalSearchParams();
-  const role = rawRole ?? ROLES.RESIDENTIAL;
-  const roleCopy = AUTH_ROLE_COPY[role] ?? {};
-  const { requestPasswordReset, resetPassword } = useAuth();
+// Own component (mirrors OtpStep in login.js) rather than inline JSX under
+// ForgotPassword — a useForm() created at the top of ForgotPassword but only
+// mounting its first Controller several renders later (once step flips to
+// 'reset') left that first field's input untypeable on web. A fresh
+// component mounts its own useForm at the moment it first renders instead.
+function ResetStep({ role, roleCopy, email, onBack }) {
+  const { resetPassword, requestPasswordReset } = useAuth();
   const toast = useToast();
-
-  const [step, setStep] = useState('email'); // 'email' | 'reset'
-  const [email, setEmail] = useState('');
   const [serverError, setServerError] = useState('');
   const [isResending, setIsResending] = useState(false);
 
-  const emailForm = useForm({
-    resolver: zodResolver(forgotPasswordEmailSchema),
-    defaultValues: { email: '' },
-  });
-
-  const resetForm = useForm({
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: { code: '', newPassword: '' },
   });
-
-  const onRequestReset = async (values) => {
-    setServerError('');
-    try {
-      await requestPasswordReset({ email: values.email });
-      setEmail(values.email);
-      setStep('reset');
-    } catch (err) {
-      setServerError(err.message);
-    }
-  };
 
   const onResend = async () => {
     setIsResending(true);
@@ -69,7 +56,7 @@ export default function ForgotPassword() {
     }
   };
 
-  const onResetPassword = async (values) => {
+  const onSubmit = async (values) => {
     setServerError('');
     try {
       const signedInUser = await resetPassword({ email, code: values.code, newPassword: values.newPassword, role });
@@ -83,74 +70,112 @@ export default function ForgotPassword() {
     }
   };
 
+  return (
+    <View className="flex-1 px-2xl pt-lg pb-2xl">
+      <BackButton onPress={onBack} style={{ marginBottom: 26 }} />
+      <AvatarTile label={roleCopy.mark} bg={roleCopy.bg} fg={roleCopy.c} size={52} radius={15} />
+      <Text className="font-display-semibold text-[22px] text-ink mt-md mb-[4px]">Reset your password</Text>
+      <Text className="font-body text-[12.5px] text-muted leading-[18px] mb-lg">
+        We emailed a 6-digit code to {email}. Enter it below with your new password.
+      </Text>
+
+      <Controller
+        control={control}
+        name="code"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <View className="bg-white border-[1.5px] border-borderInput rounded-md px-md py-[11px] mb-sm">
+            <Text className="font-body-bold text-[10px] tracking-wider uppercase text-muted">6-digit code</Text>
+            <TextInput
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="number-pad"
+              maxLength={6}
+              placeholder="123456"
+              className="font-body-semibold text-[13.5px] text-ink mt-[2px] p-0"
+            />
+          </View>
+        )}
+      />
+      {errors.code ? <Text className="text-[11px] text-danger mb-sm">{errors.code.message}</Text> : null}
+
+      <Controller
+        control={control}
+        name="newPassword"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <View className="bg-white border-[1.5px] border-borderInput rounded-md px-md py-[11px] mb-lg">
+            <Text className="font-body-bold text-[10px] tracking-wider uppercase text-muted">New password</Text>
+            <TextInput
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              secureTextEntry
+              placeholder="••••••••"
+              className="font-body-semibold text-[13.5px] text-ink mt-[2px] p-0"
+            />
+          </View>
+        )}
+      />
+      {errors.newPassword ? (
+        <Text className="text-[11px] text-danger mb-md -mt-sm">{errors.newPassword.message}</Text>
+      ) : null}
+
+      <ServerError message={serverError} />
+
+      <Button
+        title="Reset password & log in"
+        onPress={handleSubmit(onSubmit)}
+        loading={isSubmitting}
+        className="mb-sm"
+      />
+      <Button title="Resend code" variant="secondary" onPress={onResend} loading={isResending} />
+
+      <Text className="font-body text-[11px] text-faint text-center mt-auto pt-2xl">
+        One backend, one login — your role decides your dashboard.
+      </Text>
+    </View>
+  );
+}
+
+export default function ForgotPassword() {
+  const { role: rawRole } = useLocalSearchParams();
+  const role = rawRole ?? ROLES.RESIDENTIAL;
+  const roleCopy = AUTH_ROLE_COPY[role] ?? {};
+  const { requestPasswordReset } = useAuth();
+
+  const [step, setStep] = useState('email'); // 'email' | 'reset'
+  const [email, setEmail] = useState('');
+  const [serverError, setServerError] = useState('');
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(forgotPasswordEmailSchema),
+    defaultValues: { email: '' },
+  });
+
+  const onSubmit = async (values) => {
+    setServerError('');
+    try {
+      await requestPasswordReset({ email: values.email });
+      setEmail(values.email);
+      setStep('reset');
+    } catch (err) {
+      setServerError(err.message);
+    }
+  };
+
   if (step === 'reset') {
     return (
       <AuthShell>
-        <View className="flex-1 px-2xl pt-lg pb-2xl">
-          <BackButton onPress={() => { setServerError(''); setStep('email'); }} style={{ marginBottom: 26 }} />
-          <AvatarTile label={roleCopy.mark} bg={roleCopy.bg} fg={roleCopy.c} size={52} radius={15} />
-          <Text className="font-display-semibold text-[22px] text-ink mt-md mb-[4px]">Reset your password</Text>
-          <Text className="font-body text-[12.5px] text-muted leading-[18px] mb-lg">
-            We emailed a 6-digit code to {email}. Enter it below with your new password.
-          </Text>
-
-          <Controller
-            control={resetForm.control}
-            name="code"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <View className="bg-white border-[1.5px] border-borderInput rounded-md px-md py-[11px] mb-sm">
-                <Text className="font-body-bold text-[10px] tracking-wider uppercase text-muted">6-digit code</Text>
-                <TextInput
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  placeholder="123456"
-                  className="font-body-semibold text-[13.5px] text-ink mt-[2px] p-0"
-                />
-              </View>
-            )}
-          />
-          {resetForm.formState.errors.code ? (
-            <Text className="text-[11px] text-danger mb-sm">{resetForm.formState.errors.code.message}</Text>
-          ) : null}
-
-          <Controller
-            control={resetForm.control}
-            name="newPassword"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <View className="bg-white border-[1.5px] border-borderInput rounded-md px-md py-[11px] mb-lg">
-                <Text className="font-body-bold text-[10px] tracking-wider uppercase text-muted">New password</Text>
-                <TextInput
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  secureTextEntry
-                  placeholder="••••••••"
-                  className="font-body-semibold text-[13.5px] text-ink mt-[2px] p-0"
-                />
-              </View>
-            )}
-          />
-          {resetForm.formState.errors.newPassword ? (
-            <Text className="text-[11px] text-danger mb-md -mt-sm">{resetForm.formState.errors.newPassword.message}</Text>
-          ) : null}
-
-          <ServerError message={serverError} />
-
-          <Button
-            title="Reset password & log in"
-            onPress={resetForm.handleSubmit(onResetPassword)}
-            loading={resetForm.formState.isSubmitting}
-            className="mb-sm"
-          />
-          <Button title="Resend code" variant="secondary" onPress={onResend} loading={isResending} />
-
-          <Text className="font-body text-[11px] text-faint text-center mt-auto pt-2xl">
-            One backend, one login — your role decides your dashboard.
-          </Text>
-        </View>
+        <ResetStep
+          role={role}
+          roleCopy={roleCopy}
+          email={email}
+          onBack={() => { setServerError(''); setStep('email'); }}
+        />
       </AuthShell>
     );
   }
@@ -166,7 +191,7 @@ export default function ForgotPassword() {
         </Text>
 
         <Controller
-          control={emailForm.control}
+          control={control}
           name="email"
           render={({ field: { onChange, onBlur, value } }) => (
             <View className="bg-white border-[1.5px] border-borderInput rounded-md px-md py-[11px] mb-sm">
@@ -183,17 +208,11 @@ export default function ForgotPassword() {
             </View>
           )}
         />
-        {emailForm.formState.errors.email ? (
-          <Text className="text-[11px] text-danger mb-md -mt-sm">{emailForm.formState.errors.email.message}</Text>
-        ) : null}
+        {errors.email ? <Text className="text-[11px] text-danger mb-md -mt-sm">{errors.email.message}</Text> : null}
 
         <ServerError message={serverError} />
 
-        <Button
-          title="Send reset code"
-          onPress={emailForm.handleSubmit(onRequestReset)}
-          loading={emailForm.formState.isSubmitting}
-        />
+        <Button title="Send reset code" onPress={handleSubmit(onSubmit)} loading={isSubmitting} />
 
         <Text className="font-body text-[11px] text-faint text-center mt-auto pt-2xl">
           One backend, one login — your role decides your dashboard.
