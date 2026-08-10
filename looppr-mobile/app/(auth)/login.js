@@ -9,7 +9,7 @@ import AvatarTile from '../../src/components/AvatarTile';
 import Button from '../../src/components/Button';
 import { loginSchema, registerSchema, otpSchema } from '../../src/features/auth/authSchemas';
 import { AUTH_ROLE_COPY } from '../../src/features/auth/roleOptions';
-import { ROLE_LABEL, ROLES } from '../../src/constants/roles';
+import { ROLE_LABEL } from '../../src/constants/roles';
 import { useAuth } from '../../src/context/AuthContext';
 import { useToast } from '../../src/context/ToastContext';
 import { colors } from '../../src/theme/tokens';
@@ -227,7 +227,7 @@ export default function Login() {
         />
         {errors.password ? <Text className="text-[11px] text-danger mb-md -mt-sm">{errors.password.message}</Text> : null}
 
-        {!isRegister && role === ROLES.RESIDENTIAL ? (
+        {!isRegister ? (
           <Pressable onPress={() => router.push({ pathname: '/(auth)/forgot-password', params: { role } })} className="self-end mb-md -mt-sm">
             <Text className="font-body-bold text-[11.5px] text-brandDeep">Forgot password?</Text>
           </Pressable>

@@ -47,7 +47,7 @@ function ResetStep({ role, roleCopy, email, onBack }) {
   const onResend = async () => {
     setIsResending(true);
     try {
-      await requestPasswordReset({ email });
+      await requestPasswordReset({ email, role });
       toast.show(`New code sent to ${email}`);
     } catch (err) {
       setServerError(err.message);
@@ -159,7 +159,7 @@ export default function ForgotPassword() {
   const onSubmit = async (values) => {
     setServerError('');
     try {
-      await requestPasswordReset({ email: values.email });
+      await requestPasswordReset({ email: values.email, role });
       setEmail(values.email);
       setStep('reset');
     } catch (err) {

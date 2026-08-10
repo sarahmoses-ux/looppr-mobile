@@ -5,25 +5,94 @@ import { ROLES } from '../../constants/roles';
 
 // Every export here has the exact shape the real Node/Express endpoints will
 // have once they exist — screens/hooks call these, never the mock or axios
-// directly, so turning off env.useMockApi is the only change needed later.
+// directly, so flipping the relevant useMock*Auth flag off is the only
+// change needed later.
 //
-// Customer (residential) auth is the first role wired to the real
-// looppr-backend (see env.useMockCustomerAuth) — it's a fully separate
-// portal there (/api/auth/client/*, role: 'client'), distinct from the
-// driver/partner/business portals which are still mocked. Its login is
-// two-step (password check -> emailed OTP -> verify) unlike register, which
-// issues a session immediately — see looppr-backend/controllers/authController.js.
+// Each role is a fully separate portal on looppr-backend (own Mongo model,
+// own session cookie scoped to its own path) — see
+// looppr-backend/controllers/*AuthController.js. Residential's login is
+// two-step (password check -> emailed OTP -> verify); business/driver/
+// partner are password-only, but can come back "blocked" instead of
+// signed-in (unverified email / application still pending / rejected) since
+// those three are review-gated onboarding, not instant signup.
+const AUTH_CONFIG = {
+  [ROLES.RESIDENTIAL]: {
+    mockFlag: 'useMockCustomerAuth',
+    loginPath: '/auth/client/login',
+    registerPath: '/auth/client/register',
+    forgotPasswordPath: '/auth/forgot-password',
+    resetPasswordPath: '/auth/reset-password',
+    logoutPath: '/auth/logout',
+    userKey: 'user',
+    otpLogin: true,
+  },
+  [ROLES.BUSINESS]: {
+    mockFlag: 'useMockBusinessAuth',
+    loginPath: '/business-auth/login',
+    registerPath: '/business-auth/register',
+    forgotPasswordPath: '/business-auth/forgot-password',
+    resetPasswordPath: '/business-auth/reset-password',
+    logoutPath: '/business-auth/logout',
+    userKey: 'business',
+    otpLogin: false,
+  },
+  [ROLES.PARTNER]: {
+    mockFlag: 'useMockPartnerAuth',
+    loginPath: '/partner-auth/login',
+    registerPath: '/partner-auth/register',
+    forgotPasswordPath: '/partner-auth/forgot-password',
+    resetPasswordPath: '/partner-auth/reset-password',
+    logoutPath: '/partner-auth/logout',
+    userKey: 'partner',
+    otpLogin: false,
+  },
+  [ROLES.DRIVER]: {
+    mockFlag: 'useMockDriverAuth',
+    loginPath: '/driver-auth/login',
+    registerPath: '/driver-auth/register',
+    forgotPasswordPath: '/driver-auth/forgot-password',
+    resetPasswordPath: '/driver-auth/reset-password',
+    logoutPath: '/driver-auth/logout',
+    userKey: 'driver',
+    otpLogin: false,
+  },
+};
+
+function isMockAuth(role) {
+  const cfg = AUTH_CONFIG[role];
+  return !cfg || env[cfg.mockFlag];
+}
 
 function delay(ms = 350) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Maps the backend's flat { role: 'client' } user onto the shape the rest of
-// the app expects (ownedRoles[], for the multi-role switcher) — the real
-// backend doesn't support one account owning multiple roles yet, so this is
-// always a single-element array for now.
-function toMobileUser(backendUser) {
-  return { ...backendUser, ownedRoles: [ROLES.RESIDENTIAL] };
+// Maps the backend's flat per-role user (role: 'client' | 'business' |
+// 'partner' | 'driver') onto the shape the rest of the app expects
+// (ownedRoles[], for the multi-role switcher) — the real backend doesn't
+// support one account owning multiple roles yet, so this is always a
+// single-element array for now.
+function toMobileUser(role, backendUser) {
+  return { ...backendUser, ownedRoles: [role] };
+}
+
+// business/driver/partner login only ever returns an accessToken for an
+// active, verified account — anything else means the account exists but
+// can't sign in yet, which the login screen surfaces via its server-error
+// banner (there's no dedicated "check your email" / "application pending"
+// screen since registration through the app is still mocked, see
+// mockRegister below).
+function loginBlockedError(data) {
+  if (data.requiresVerification) {
+    return new Error('Please verify your email before signing in — check your inbox for a verification code.');
+  }
+  if (data.pendingApproval) {
+    return new Error('Your application is still under review. We’ll email you once it’s approved.');
+  }
+  if (data.applicationRejected) {
+    return new Error('This application was not approved. Contact Looppr support for details.');
+  }
+  return new Error('Unable to sign in right now. Please try again.');
 }
 
 async function mockLogin({ email, password, role }) {
@@ -82,18 +151,24 @@ async function mockRegister({ email, password, role, name }) {
 }
 
 export async function login({ email, password, role }) {
-  if (role !== ROLES.RESIDENTIAL) return mockLogin({ email, password, role });
-  if (env.useMockCustomerAuth) return mockLogin({ email, password, role });
+  if (isMockAuth(role)) return mockLogin({ email, password, role });
+  const cfg = AUTH_CONFIG[role];
 
-  // Real backend gates login behind an emailed OTP — this only returns a
-  // challenge, not a session. Caller must follow up with verifyLoginOtp.
-  const { data } = await apiClient.post('/auth/client/login', { email, password });
-  return { requiresOtp: true, challengeToken: data.challengeToken, email: data.email };
+  if (cfg.otpLogin) {
+    // Real backend gates login behind an emailed OTP — this only returns a
+    // challenge, not a session. Caller must follow up with verifyLoginOtp.
+    const { data } = await apiClient.post(cfg.loginPath, { email, password });
+    return { requiresOtp: true, challengeToken: data.challengeToken, email: data.email };
+  }
+
+  const { data } = await apiClient.post(cfg.loginPath, { email, password });
+  if (!data.accessToken) throw loginBlockedError(data);
+  return { user: toMobileUser(role, data[cfg.userKey]), token: data.accessToken };
 }
 
 export async function verifyLoginOtp({ challengeToken, code }) {
   const { data } = await apiClient.post('/auth/client/login/verify-otp', { challengeToken, code });
-  return { user: toMobileUser(data.user), token: data.accessToken };
+  return { user: toMobileUser(ROLES.RESIDENTIAL, data.user), token: data.accessToken };
 }
 
 export async function resendLoginOtp({ challengeToken }) {
@@ -102,31 +177,33 @@ export async function resendLoginOtp({ challengeToken }) {
 }
 
 export async function register({ email, password, role, name, phone }) {
+  // Registration stays mocked for every role for now — business/driver/
+  // partner registration on the real backend is a much larger application
+  // form (vehicle/business details, document uploads, admin review), not a
+  // like-for-like swap the way login/forgot-password are.
   if (role !== ROLES.RESIDENTIAL) return mockRegister({ email, password, role, name });
   if (env.useMockCustomerAuth) return mockRegister({ email, password, role, name });
 
   const { data } = await apiClient.post('/auth/client/register', { name, email, phone, password });
-  return { user: toMobileUser(data.user), token: data.accessToken };
+  return { user: toMobileUser(ROLES.RESIDENTIAL, data.user), token: data.accessToken };
 }
 
 export async function fetchMe() {
   const { data } = await apiClient.get('/auth/me');
-  return toMobileUser(data.user);
+  return toMobileUser(ROLES.RESIDENTIAL, data.user);
 }
 
-// Note: unlike login/register/OTP, these two live at /auth/forgot-password
-// and /auth/reset-password on the backend — not under the /auth/client/
-// prefix — but are still scoped server-side to role: 'client'.
-export async function forgotPassword({ email }) {
-  if (env.useMockCustomerAuth) return mockForgotPassword();
-  const { data } = await apiClient.post('/auth/forgot-password', { email });
+export async function forgotPassword({ email, role }) {
+  if (isMockAuth(role)) return mockForgotPassword();
+  const { data } = await apiClient.post(AUTH_CONFIG[role].forgotPasswordPath, { email });
   return data;
 }
 
-export async function resetPassword({ email, code, newPassword }) {
-  if (env.useMockCustomerAuth) return mockResetPassword({ email });
-  const { data } = await apiClient.post('/auth/reset-password', { email, code, newPassword });
-  return { user: toMobileUser(data.user), token: data.accessToken };
+export async function resetPassword({ email, code, newPassword, role }) {
+  if (isMockAuth(role)) return mockResetPassword({ email });
+  const cfg = AUTH_CONFIG[role];
+  const { data } = await apiClient.post(cfg.resetPasswordPath, { email, code, newPassword });
+  return { user: toMobileUser(role, data[cfg.userKey]), token: data.accessToken };
 }
 
 export async function fetchOwnedAccounts({ email }) {
@@ -140,10 +217,10 @@ export async function fetchOwnedAccounts({ email }) {
 }
 
 export async function logout({ role } = {}) {
-  if (role !== ROLES.RESIDENTIAL || env.useMockCustomerAuth) {
+  if (isMockAuth(role)) {
     await delay(100);
     return { ok: true };
   }
-  const { data } = await apiClient.post('/auth/logout');
+  const { data } = await apiClient.post(AUTH_CONFIG[role].logoutPath);
   return data;
 }

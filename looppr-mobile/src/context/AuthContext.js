@@ -63,13 +63,13 @@ export function AuthProvider({ children }) {
 
   const resendOtp = useCallback(({ challengeToken }) => authApi.resendLoginOtp({ challengeToken }), []);
 
-  const requestPasswordReset = useCallback(({ email }) => authApi.forgotPassword({ email }), []);
+  const requestPasswordReset = useCallback(({ email, role }) => authApi.forgotPassword({ email, role }), []);
 
   // The reset-password endpoint verifies the emailed code and signs the user
   // straight in (they've already proven email ownership), so this mirrors
   // verifyOtp above rather than just resolving a plain success message.
   const resetPassword = useCallback(async ({ email, code, newPassword, role }) => {
-    const { user: signedInUser, token } = await authApi.resetPassword({ email, code, newPassword });
+    const { user: signedInUser, token } = await authApi.resetPassword({ email, code, newPassword, role });
     setUser(signedInUser);
     setCurrentRole(role);
     setStatus('signedIn');
