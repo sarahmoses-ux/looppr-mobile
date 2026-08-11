@@ -1,8 +1,8 @@
 export const SERVICE_CATALOG = [
-  { key: 'wash_fold', name: 'Wash & fold', unitLabel: 'per bag', price: 19.13 },
-  { key: 'comforter', name: 'Comforter', unitLabel: 'each', price: 15 },
-  { key: 'delicates', name: 'Delicates', unitLabel: 'per bag', price: 22.5 },
-  { key: 'hang_dry', name: 'Hang-dry', unitLabel: 'per item', price: 4.5 },
+  { key: 'wash_fold', name: 'Wash & fold', desc: 'Washed, dried, and folded', unitLabel: 'per bag', price: 19.13 },
+  { key: 'comforter', name: 'Comforter', desc: 'Washed separately, bagged', unitLabel: 'each', price: 15 },
+  { key: 'delicates', name: 'Delicates', desc: 'Cold wash, hang-dry', unitLabel: 'per bag', price: 22.5 },
+  { key: 'hang_dry', name: 'Hang-dry', desc: 'Air-dried, on hangers', unitLabel: 'per item', price: 4.5 },
 ];
 
 export const DELIVERY_WINDOWS = [
@@ -13,7 +13,7 @@ export const DELIVERY_WINDOWS = [
 ];
 
 export const STEP_TITLES = {
-  1: { title: 'Choose your plan', label: 'Step 1 of 4' },
+  1: { title: 'Choose your laundromat', label: 'Step 1 of 4' },
   2: { title: 'What are we washing?', label: 'Step 2 of 4' },
   3: { title: 'Pickup details', label: 'Step 3 of 4' },
   4: { title: 'Review & pay', label: 'Step 4 of 4' },

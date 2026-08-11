@@ -7,6 +7,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import BackButton from '../../../src/components/BackButton';
 import Card from '../../../src/components/Card';
 import Button from '../../../src/components/Button';
+import StatusPill from '../../../src/components/StatusPill';
 import Toggle from '../../../src/components/Toggle';
 import StepperControl from '../../../src/components/StepperControl';
 import { SegmentedProgressBar } from '../../../src/components/ProgressBar';
@@ -92,7 +93,7 @@ export default function Book() {
               router.push(`/(customer)/track?orderId=${id}`);
             }}
           />
-          <Button title="Done" variant="secondary" className="w-full" onPress={resetAndGoHome} />
+          <Button title="Back home" variant="secondary" className="w-full" onPress={resetAndGoHome} />
         </View>
       </SafeAreaView>
     );
@@ -139,7 +140,10 @@ export default function Book() {
                     <Text className="font-display-semibold text-[14px] text-brandDeep">{v.initials}</Text>
                   </View>
                   <View className="flex-1 min-w-0">
-                    <Text className="font-body-bold text-[14px] text-ink">{v.name}</Text>
+                    <View className="flex-row items-center gap-sm mb-[1px]">
+                      <Text className="font-body-bold text-[14px] text-ink">{v.name}</Text>
+                      {v.badge ? <StatusPill label={v.badge} variant="done" /> : null}
+                    </View>
                     <Text className="font-body text-[11.5px] text-muted">{v.meta}</Text>
                   </View>
                   <Text className="font-body-bold text-[13px] text-ink">${v.rate}/{v.unit}</Text>
@@ -154,6 +158,7 @@ export default function Book() {
                 <Card key={s.key} className="flex-row items-center gap-md">
                   <View className="flex-1 min-w-0">
                     <Text className="font-body-bold text-[13.5px] text-ink">{s.name}</Text>
+                    <Text className="font-body text-[11px] text-muted mb-[1px]">{s.desc}</Text>
                     <Text className="font-body text-[11.5px] text-muted">{formatCurrency(s.price)} {s.unitLabel}</Text>
                   </View>
                   <StepperControl
@@ -193,7 +198,10 @@ export default function Book() {
                 })}
               </View>
               <View className="bg-white border border-border rounded-md px-lg py-[13px] flex-row items-center gap-md">
-                <Text className="flex-1 font-body-bold text-[13px] text-ink">Repeat weekly</Text>
+                <View className="flex-1">
+                  <Text className="font-body-bold text-[13px] text-ink">Repeat weekly</Text>
+                  <Text className="font-body text-[11.5px] text-muted">Same window every week · skip anytime</Text>
+                </View>
                 <Toggle value={recurring} onValueChange={setRecurring} />
               </View>
             </View>
