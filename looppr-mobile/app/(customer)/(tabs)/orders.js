@@ -24,7 +24,7 @@ const StarRow = memo(function StarRow({ value, onRate }) {
   );
 });
 
-const OrderRow = memo(function OrderRow({ item, onTrack, onRate }) {
+const OrderRow = memo(function OrderRow({ item, onTrack, onRate, onReorder }) {
   const isDelivered = item.stage === ORDER_STAGE.DELIVERED;
 
   return (
@@ -39,7 +39,10 @@ const OrderRow = memo(function OrderRow({ item, onTrack, onRate }) {
       <View className="flex-row items-center justify-between">
         <Text className="font-body-bold text-[14px] text-ink">{formatCurrency(item.total)}</Text>
         {isDelivered ? (
-          <StarRow value={item.rating ?? 0} onRate={(stars) => onRate(item.id, stars)} />
+          <View className="flex-row items-center gap-sm">
+            <StarRow value={item.rating ?? 0} onRate={(stars) => onRate(item.id, stars)} />
+            <Button title="Reorder" variant="secondary" onPress={onReorder} className="px-md py-[7px]" />
+          </View>
         ) : (
           <Button title="Track" onPress={() => onTrack(item.id)} className="px-md py-[7px]" />
         )}
@@ -54,6 +57,7 @@ export default function Orders() {
 
   const onTrack = useCallback((orderId) => router.push(`/(customer)/track?orderId=${orderId}`), []);
   const onRate = useCallback((orderId, stars) => rateOrder.mutate({ orderId, stars }), [rateOrder]);
+  const onReorder = useCallback(() => router.push('/(customer)/(tabs)/book'), []);
 
   return (
     <SafeAreaView style={{ flex: 1 }} className="bg-bg" edges={['top']}>
@@ -64,7 +68,7 @@ export default function Orders() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         ListEmptyComponent={<EmptyState icon="basket-outline" title="No orders yet" subtitle="Book your first pickup to see it here." />}
-        renderItem={({ item }) => <OrderRow item={item} onTrack={onTrack} onRate={onRate} />}
+        renderItem={({ item }) => <OrderRow item={item} onTrack={onTrack} onRate={onRate} onReorder={onReorder} />}
       />
     </SafeAreaView>
   );
