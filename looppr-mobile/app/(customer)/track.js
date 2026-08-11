@@ -2,9 +2,10 @@ import { useEffect } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing, FadeInDown } from 'react-native-reanimated';
 import BackButton from '../../src/components/BackButton';
 import StatusPill from '../../src/components/StatusPill';
+import { Ionicons } from '@expo/vector-icons';
 import { useOrder } from '../../src/hooks/useOrders';
 import { buildTrackSteps } from '../../src/features/customer/trackSteps';
 import { ORDER_STAGE_LABEL, ORDER_STAGE_PILL } from '../../src/constants/orderStages';
@@ -44,6 +45,27 @@ function RouteViz({ vendorShort }) {
   );
 }
 
+function SpinnerRing() {
+  const spin = useSharedValue(0);
+
+  useEffect(() => {
+    spin.value = withRepeat(withTiming(1, { duration: 900, easing: Easing.linear }), -1, false);
+  }, []);
+
+  const spinStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${spin.value * 360}deg` }],
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        { width: 12, height: 12, borderRadius: 6, borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.4)', borderTopColor: colors.white },
+        spinStyle,
+      ]}
+    />
+  );
+}
+
 export default function Track() {
   const { orderId } = useLocalSearchParams();
   const { data: order } = useOrder(orderId);
@@ -61,9 +83,11 @@ export default function Track() {
       </View>
 
       <ScrollView className="px-lg" contentContainerStyle={{ paddingBottom: 24 }}>
-        <RouteViz vendorShort={order?.vendor?.name?.slice(0, 8) ?? 'Facility'} />
+        <Animated.View entering={FadeInDown.delay(0).duration(360)}>
+          <RouteViz vendorShort={order?.vendor?.name?.slice(0, 8) ?? 'Facility'} />
+        </Animated.View>
 
-        <View className="bg-white border border-border rounded-md p-lg">
+        <Animated.View entering={FadeInDown.delay(70).duration(360)} className="bg-white border border-border rounded-md p-lg mb-md">
           {steps.map((step, i) => (
             <View key={step.title} className="flex-row gap-md">
               <View className="items-center" style={{ width: 24 }}>
@@ -76,6 +100,7 @@ export default function Track() {
                   }}
                 >
                   {step.done ? <Text style={{ color: colors.white, fontSize: 11 }}>✓</Text> : null}
+                  {step.current ? <SpinnerRing /> : null}
                 </View>
                 {i < steps.length - 1 ? (
                   <View style={{ width: 2, flex: 1, minHeight: 24, backgroundColor: step.done ? colors.success : colors.border }} />
@@ -87,7 +112,26 @@ export default function Track() {
               </View>
             </View>
           ))}
-        </View>
+        </Animated.View>
+
+        <Animated.View
+          entering={FadeInDown.delay(140).duration(360)}
+          className="bg-white border border-border rounded-md px-lg py-[13px] flex-row items-center gap-md"
+        >
+          <View
+            className="w-[38px] h-[38px] rounded-full items-center justify-center"
+            style={{ backgroundColor: colors.brandDeep }}
+          >
+            <Text className="font-display-semibold text-[13px] text-white">JA</Text>
+          </View>
+          <View className="flex-1">
+            <Text className="font-body-bold text-[13px] text-ink">Jeffrey — your Looppr driver</Text>
+            <Text className="font-body text-[11.5px] text-muted">Founder-operated route · Edmond</Text>
+          </View>
+          <View className="w-9 h-9 rounded-sm border border-borderInput items-center justify-center" style={{ backgroundColor: colors.surface }}>
+            <Ionicons name="chatbubble-outline" size={15} color={colors.brandDeep} />
+          </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );

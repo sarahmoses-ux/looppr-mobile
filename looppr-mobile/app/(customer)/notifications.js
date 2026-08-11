@@ -2,10 +2,12 @@ import { Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import BackButton from '../../src/components/BackButton';
 import Button from '../../src/components/Button';
 import EmptyState from '../../src/components/EmptyState';
 import { useMarkAllRead, useNotifications } from '../../src/hooks/useNotifications';
+import { colors } from '../../src/theme/tokens';
 
 export default function Notifications() {
   const { data: notifications } = useNotifications();
@@ -25,10 +27,15 @@ export default function Notifications() {
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
         ListEmptyComponent={<EmptyState icon="notifications-outline" title="You're all caught up" subtitle="New updates will show up here." />}
         renderItem={({ item }) => (
-          <View className={`bg-white border border-border rounded-md px-lg py-[13px] ${item.read ? 'opacity-60' : ''}`}>
-            <Text className="font-body-bold text-[13px] text-ink mb-[2px]">{item.title}</Text>
-            <Text className="font-body text-[12px] text-muted leading-[17px] mb-[4px]">{item.body}</Text>
-            <Text className="font-body text-[10.5px] text-faint">{item.time}</Text>
+          <View className={`flex-row gap-md bg-white border border-border rounded-md px-lg py-[13px] ${item.read ? 'opacity-60' : ''}`}>
+            <View className="w-9 h-9 rounded-md bg-tint items-center justify-center">
+              <Ionicons name="notifications-outline" size={16} color={colors.brandDeep} />
+            </View>
+            <View className="flex-1 min-w-0">
+              <Text className="font-body-bold text-[13px] text-ink mb-[2px]">{item.title}</Text>
+              <Text className="font-body text-[12px] text-muted leading-[17px] mb-[4px]">{item.body}</Text>
+              <Text className="font-body text-[10.5px] text-faint">{item.time}</Text>
+            </View>
           </View>
         )}
       />
