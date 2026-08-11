@@ -104,6 +104,18 @@ export async function logOrderWeight({ orderId, lbs, ratePerLb }) {
   return data;
 }
 
+export async function logOrderPhoto({ orderId, photoUri }) {
+  if (env.useMockApi) {
+    await delay(300);
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new Error('Order not found.');
+    order.photoUri = photoUri;
+    return withVendor(order);
+  }
+  const { data } = await apiClient.post(`/orders/${orderId}/photo`, { photoUri });
+  return data;
+}
+
 export async function fetchDriverRoute({ driverEmail }) {
   if (env.useMockApi) {
     await delay();

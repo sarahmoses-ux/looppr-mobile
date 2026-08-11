@@ -68,6 +68,17 @@ export function useLogOrderWeight() {
   });
 }
 
+export function useLogOrderPhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ordersApi.logOrderPhoto,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-route'] });
+    },
+  });
+}
+
 export function usePartnerQueue(vendorId) {
   return useQuery({
     queryKey: ['partner-queue', vendorId],

@@ -1,10 +1,13 @@
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import ScreenHeader from '../../../src/components/ScreenHeader';
 import Card from '../../../src/components/Card';
 import { useDriverEarnings } from '../../../src/hooks/useOrders';
 import { formatCurrency } from '../../../src/utils/format';
 import { colors } from '../../../src/theme/tokens';
+
+const STAGGER_MS = 70;
 
 export default function Earn() {
   const { data: earnings } = useDriverEarnings();
@@ -13,13 +16,15 @@ export default function Earn() {
     <SafeAreaView style={{ flex: 1 }} className="bg-bg" edges={['top']}>
       <ScreenHeader title="Earnings" subtitle="This shift" />
       <ScrollView className="px-lg" contentContainerStyle={{ paddingBottom: 24 }}>
-        <Card className="items-center py-2xl mb-lg" style={{ backgroundColor: colors.brand, borderWidth: 0 }}>
-          <Text className="font-body-bold text-[11px] tracking-wider uppercase text-tint mb-sm">Shift total</Text>
-          <Text className="font-display-semibold text-[36px] text-white">{formatCurrency(earnings?.total ?? 0)}</Text>
-          <Text className="font-body text-[11.5px] text-tint mt-sm">Paid out weekly via Stripe · Fridays</Text>
-        </Card>
+        <Animated.View entering={FadeInDown.duration(360)}>
+          <Card className="items-center py-2xl mb-lg" style={{ backgroundColor: colors.brand, borderWidth: 0 }}>
+            <Text className="font-body-bold text-[11px] tracking-wider uppercase text-tint mb-sm">Shift total</Text>
+            <Text className="font-display-semibold text-[36px] text-white">{formatCurrency(earnings?.total ?? 0)}</Text>
+            <Text className="font-body text-[11.5px] text-tint mt-sm">Paid out weekly via Stripe · Fridays</Text>
+          </Card>
+        </Animated.View>
 
-        <View className="bg-white border border-border rounded-md">
+        <Animated.View entering={FadeInDown.delay(STAGGER_MS).duration(360)} className="bg-white border border-border rounded-md">
           {(earnings?.rows ?? []).map((row, i) => (
             <View
               key={row.label}
@@ -29,7 +34,7 @@ export default function Earn() {
               <Text className="font-body-semibold text-[13px] text-muted">{row.value}</Text>
             </View>
           ))}
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
