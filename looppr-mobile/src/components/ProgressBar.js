@@ -23,16 +23,18 @@ export function SegmentedProgressBar({ segments, gap = 5, height = 5 }) {
   );
 }
 
-// Continuous fill bar (KPI/funnel style) — percent is 0-100.
-export function FillProgressBar({ percent, height = 7 }) {
+// Continuous fill bar (KPI/funnel style) — percent is 0-100. trackColor/
+// fillColor default to the on-light-background look but can be overridden
+// (e.g. a translucent white track + bright fill on a purple hero card).
+export function FillProgressBar({ percent, height = 7, trackColor = colors.divider, fillColor = colors.brand }) {
   return (
-    <View style={{ height, borderRadius: height / 2, backgroundColor: colors.divider, overflow: 'hidden' }}>
+    <View style={{ height, borderRadius: height / 2, backgroundColor: trackColor, overflow: 'hidden' }}>
       <View
         style={{
           width: `${Math.max(0, Math.min(100, percent))}%`,
           height: '100%',
           borderRadius: height / 2,
-          backgroundColor: colors.brand,
+          backgroundColor: fillColor,
         }}
       />
     </View>
