@@ -47,18 +47,24 @@ export default function Profile() {
         />
 
         <View className="bg-white border border-border rounded-md px-lg py-[13px] flex-row items-center gap-md mb-sm">
-          <Text className="flex-1 font-body-bold text-[13px] text-ink">Fabric softener</Text>
+          <View className="flex-1">
+            <Text className="font-body-bold text-[13px] text-ink">Fabric softener</Text>
+            <Text className="font-body text-[11.5px] text-muted">Applied to every order</Text>
+          </View>
           <Toggle value={Boolean(prefs.softener)} onValueChange={(softener) => updatePreferences.mutate({ softener })} />
         </View>
         <View className="bg-white border border-border rounded-md px-lg py-[13px] flex-row items-center gap-md mb-lg">
-          <Text className="flex-1 font-body-bold text-[13px] text-ink">Weekly pickup</Text>
+          <View className="flex-1">
+            <Text className="font-body-bold text-[13px] text-ink">Weekly pickup</Text>
+            <Text className="font-body text-[11.5px] text-muted">{prefs.recurring ? 'Every Sunday, 4-6 PM' : 'Not scheduled'}</Text>
+          </View>
           <Toggle value={Boolean(prefs.recurring)} onValueChange={(recurring) => updatePreferences.mutate({ recurring })} />
         </View>
 
         <View className="bg-white border border-border rounded-md px-lg py-[13px] flex-row items-center gap-md">
           <View className="flex-1">
             <Text className="font-body-bold text-[13px] text-ink">Referral code</Text>
-            <Text className="font-body text-[11.5px] text-muted">{profile?.referralCode}</Text>
+            <Text className="font-body text-[11.5px] text-muted">$20 credit per friend you refer</Text>
           </View>
           <Text
             className="font-body-bold text-[12px] text-brandDeep"
