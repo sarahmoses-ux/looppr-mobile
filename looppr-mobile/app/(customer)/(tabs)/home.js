@@ -1,4 +1,4 @@
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -109,7 +109,8 @@ export default function Home() {
         </Animated.View>
 
         <Animated.View entering={rise()}>
-          <View
+          <Pressable
+            onPress={() => router.push('/(auth)/login?role=business')}
             className="bg-white rounded-md px-lg py-[13px] flex-row items-center gap-md"
             style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: '#C8C2EE' }}
           >
@@ -121,7 +122,7 @@ export default function Home() {
               <Text className="font-body text-[11.5px] text-muted">Airbnbs, gyms, salons — commercial rates & invoicing.</Text>
             </View>
             <Text className="font-body-bold text-[12px] text-brandDeep">Learn →</Text>
-          </View>
+          </Pressable>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>

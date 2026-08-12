@@ -1,4 +1,5 @@
 import { Text, TextInput, View } from 'react-native';
+import { colors } from '../theme/tokens';
 
 // Fields match looppr-backend's savedAddresses/address schema exactly
 // (street/apartment/city/state/zip) — Oklahoma-only at launch, so state
@@ -17,6 +18,7 @@ export default function AddressForm({ value, onChange, showLabel }) {
           value={value.label}
           onChangeText={(label) => onChange({ ...value, label })}
           placeholder="Label (e.g. Home, Work)"
+          placeholderTextColor={colors.faint}
           className="bg-white border-[1.5px] border-borderInput rounded-md px-md py-[12px] font-body-semibold text-[13.5px] text-ink"
         />
       ) : null}
@@ -24,12 +26,14 @@ export default function AddressForm({ value, onChange, showLabel }) {
         value={value.street}
         onChangeText={(street) => onChange({ ...value, street })}
         placeholder="Street address"
+        placeholderTextColor={colors.faint}
         className="bg-white border-[1.5px] border-borderInput rounded-md px-md py-[12px] font-body-semibold text-[13.5px] text-ink"
       />
       <TextInput
         value={value.apartment}
         onChangeText={(apartment) => onChange({ ...value, apartment })}
         placeholder="Apartment / unit"
+        placeholderTextColor={colors.faint}
         className="bg-white border-[1.5px] border-borderInput rounded-md px-md py-[12px] font-body-semibold text-[13.5px] text-ink"
       />
       <View className="flex-row gap-sm">
@@ -37,12 +41,14 @@ export default function AddressForm({ value, onChange, showLabel }) {
           value={value.city}
           onChangeText={(city) => onChange({ ...value, city })}
           placeholder="City"
+          placeholderTextColor={colors.faint}
           className="flex-1 bg-white border-[1.5px] border-borderInput rounded-md px-md py-[12px] font-body-semibold text-[13.5px] text-ink"
         />
         <TextInput
           value={value.zip}
           onChangeText={(zip) => onChange({ ...value, zip })}
           placeholder="ZIP"
+          placeholderTextColor={colors.faint}
           keyboardType="number-pad"
           maxLength={10}
           className="w-[110px] bg-white border-[1.5px] border-borderInput rounded-md px-md py-[12px] font-body-semibold text-[13.5px] text-ink"
