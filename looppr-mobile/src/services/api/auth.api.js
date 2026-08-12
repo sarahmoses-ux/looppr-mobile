@@ -188,8 +188,28 @@ export async function register({ email, password, role, name, phone }) {
   return { user: toMobileUser(ROLES.RESIDENTIAL, data.user), token: data.accessToken };
 }
 
-export async function fetchMe() {
+export async function fetchMe({ email } = {}) {
+  if (env.useMockCustomerAuth) {
+    await delay(150);
+    const user = users[email];
+    if (!user) throw new Error('User not found.');
+    return toMobileUser(ROLES.RESIDENTIAL, user);
+  }
   const { data } = await apiClient.get('/auth/me');
+  return toMobileUser(ROLES.RESIDENTIAL, data.user);
+}
+
+export async function updateMe({ email, name, phone, emailNotifications }) {
+  if (env.useMockCustomerAuth) {
+    await delay(250);
+    const user = users[email];
+    if (!user) throw new Error('User not found.');
+    if (name !== undefined) user.name = name;
+    if (phone !== undefined) user.phone = phone;
+    if (emailNotifications !== undefined) user.emailNotifications = emailNotifications;
+    return toMobileUser(ROLES.RESIDENTIAL, user);
+  }
+  const { data } = await apiClient.patch('/auth/me', { name, phone, emailNotifications });
   return toMobileUser(ROLES.RESIDENTIAL, data.user);
 }
 

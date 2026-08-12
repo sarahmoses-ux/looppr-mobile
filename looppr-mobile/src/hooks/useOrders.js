@@ -2,42 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ordersApi from '../services/api/orders.api';
 import { useAuth } from '../context/AuthContext';
 
-export function useVendors() {
-  return useQuery({ queryKey: ['vendors'], queryFn: ordersApi.fetchVendors });
-}
-
-export function useOrders() {
-  const { user } = useAuth();
-  return useQuery({
-    queryKey: ['orders', user?.email],
-    queryFn: () => ordersApi.fetchOrders({ customerEmail: user.email }),
-    enabled: Boolean(user?.email),
-  });
-}
-
-export function useOrder(orderId) {
-  return useQuery({
-    queryKey: ['order', orderId],
-    queryFn: () => ordersApi.fetchOrder({ orderId }),
-    enabled: Boolean(orderId),
-  });
-}
-
-export function useCreateOrder() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ordersApi.createOrder,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
-  });
-}
-
-export function useRateOrder() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ordersApi.rateOrder,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
-  });
-}
+// Customer-facing order creation/listing/rating now lives in
+// usePickups.js against the real PickupRequest model — everything
+// below is driver/partner-only, still on the old mock vendor/services shape.
 
 export function useDriverRoute() {
   const { user } = useAuth();

@@ -7,33 +7,39 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import ScreenHeader from '../../../src/components/ScreenHeader';
 import Card from '../../../src/components/Card';
 import Button from '../../../src/components/Button';
-import Toggle from '../../../src/components/Toggle';
 import { SegmentedProgressBar } from '../../../src/components/ProgressBar';
-import { useOrders } from '../../../src/hooks/useOrders';
+import { useMyPickups, useMyStats } from '../../../src/hooks/usePickups';
 import { useNotifications } from '../../../src/hooks/useNotifications';
-import { useProfile, useUpdatePreferences } from '../../../src/hooks/useProfile';
-import { useToast } from '../../../src/context/ToastContext';
 import { colors } from '../../../src/theme/tokens';
-import { ORDER_STAGE, ORDER_STAGE_LABEL, ORDER_STAGE_ORDER } from '../../../src/constants/orderStages';
+import { PICKUP_STATUS_ORDER, TERMINAL_STATUSES, pickupStatusLabel } from '../../../src/constants/pickupStatus';
+import { WINDOW_OPTIONS } from '../../../src/features/customer/bookingOptions';
 import { formatCurrency, formatShortDate } from '../../../src/utils/format';
 
-const STAGE_SEGMENTS = ['done', 'active', 'upcomingLight', 'upcomingLight', 'upcomingLight'];
+const STAGE_SEGMENTS = ['done', 'active', 'upcomingLight', 'upcomingLight'];
 const STAGGER_MS = 70;
+const windowLabel = (key) => WINDOW_OPTIONS.find((w) => w.key === key)?.label ?? key;
 
 export default function Home() {
-  const { data: orders } = useOrders();
+  const { data: pickups } = useMyPickups();
+  const { data: stats } = useMyStats();
   const { data: notifications } = useNotifications();
-  const { data: profile } = useProfile();
-  const updatePreferences = useUpdatePreferences();
-  const toast = useToast();
 
-  const activeOrder = orders?.find((o) => o.stage !== ORDER_STAGE.DELIVERED);
+  const activeOrder = pickups?.find((p) => !TERMINAL_STATUSES.includes(p.status));
+  const lastOrder = pickups?.[0];
   const unread = notifications?.filter((n) => !n.read).length ?? 0;
-  const stageIdx = activeOrder ? ORDER_STAGE_ORDER.indexOf(activeOrder.stage) : -1;
+  const stageIdx = activeOrder ? PICKUP_STATUS_ORDER.indexOf(activeOrder.status) : -1;
   const segments = STAGE_SEGMENTS.map((_, i) => (i < stageIdx ? 'done' : i === stageIdx ? 'active' : 'upcomingLight'));
 
-  const copyCode = () => {
-    toast.show(`Referral code ${profile?.referralCode ?? 'LOOP20'} copied`);
+  const onBookAgain = () => {
+    if (!lastOrder) {
+      router.push('/(customer)/(tabs)/book');
+      return;
+    }
+    const { street, apartment, city, state, zip } = lastOrder.address ?? {};
+    router.push({
+      pathname: '/(customer)/(tabs)/book',
+      params: { rebookAddress: JSON.stringify({ street, apartment, city, state, zip }) },
+    });
   };
 
   let step = 0;
@@ -54,11 +60,11 @@ export default function Home() {
               <View className="flex-row items-center gap-sm mb-md">
                 <View className="w-2 h-2 rounded-full bg-successBright" />
                 <Text className="font-body-bold text-[12px] tracking-wider uppercase text-tint">
-                  Order {activeOrder.id} · {ORDER_STAGE_LABEL[activeOrder.stage]}
+                  Order {activeOrder._id.slice(-6).toUpperCase()} · {pickupStatusLabel(activeOrder.status)}
                 </Text>
               </View>
-              <Text className="font-display-semibold text-[19px] text-white mb-[4px]">{activeOrder.vendor?.name}</Text>
-              <Text className="font-body text-[12.5px] text-[#F1EFFE] mb-lg">{activeOrder.window}</Text>
+              <Text className="font-display-semibold text-[19px] text-white mb-[4px]">{activeOrder.address?.street}</Text>
+              <Text className="font-body text-[12.5px] text-[#F1EFFE] mb-lg">{windowLabel(activeOrder.window)} pickup</Text>
               <View className="mb-lg">
                 <SegmentedProgressBar segments={segments} />
               </View>
@@ -66,7 +72,7 @@ export default function Home() {
                 title="Track live →"
                 variant="secondary"
                 style={{ borderWidth: 0 }}
-                onPress={() => router.push(`/(customer)/track?orderId=${activeOrder.id}`)}
+                onPress={() => router.push(`/(customer)/track?orderId=${activeOrder._id}`)}
               />
             </LinearGradient>
           </Animated.View>
@@ -78,57 +84,28 @@ export default function Home() {
               <Ionicons name="add" size={16} color={colors.brandDeep} />
             </View>
             <Text className="font-body-bold text-[13.5px] text-ink mb-[1px]">Schedule pickup</Text>
-            <Text className="font-body text-[11.5px] text-muted">Next window today 4 PM</Text>
+            <Text className="font-body text-[11.5px] text-muted">Choose your address & date</Text>
           </Card>
-          <Card className="flex-1 p-[15px]" onPress={() => router.push('/(customer)/(tabs)/book')}>
+          <Card className="flex-1 p-[15px]" onPress={onBookAgain}>
             <View className="w-8 h-8 rounded-xs bg-successBg items-center justify-center mb-sm">
               <Ionicons name="refresh" size={16} color={colors.success} />
             </View>
-            <Text className="font-body-bold text-[13.5px] text-ink mb-[1px]">Reorder last</Text>
-            <Text className="font-body text-[11.5px] text-muted">Wash & fold · {formatCurrency(38.25)}</Text>
+            <Text className="font-body-bold text-[13.5px] text-ink mb-[1px]">Book again</Text>
+            <Text className="font-body text-[11.5px] text-muted" numberOfLines={1}>
+              {lastOrder ? lastOrder.address?.street : 'No orders yet'}
+            </Text>
           </Card>
         </Animated.View>
 
-        <Animated.View entering={rise()}>
-          <Card className="flex-row items-center gap-md mb-sm">
-            <View className="w-9 h-9 rounded-md bg-tint items-center justify-center">
-              <Ionicons name="calendar-outline" size={17} color={colors.brandDeep} />
-            </View>
-            <View className="flex-1">
-              <Text className="font-body-bold text-[13px] text-ink">Weekly pickup</Text>
-              <Text className="font-body text-[11.5px] text-muted">
-                {profile?.preferences?.recurring ? 'Every Sunday, 4-6 PM' : 'Not scheduled'}
-              </Text>
-            </View>
-            <Toggle
-              value={Boolean(profile?.preferences?.recurring)}
-              onValueChange={(v) => updatePreferences.mutate({ recurring: v })}
-            />
+        <Animated.View entering={rise()} className="flex-row gap-sm mb-md">
+          <Card className="flex-1 items-center py-lg">
+            <Text className="font-display-semibold text-[22px] text-ink">{stats?.totalOrders ?? 0}</Text>
+            <Text className="font-body text-[11px] text-muted mt-[2px]">Total orders</Text>
           </Card>
-        </Animated.View>
-
-        <Animated.View entering={rise()}>
-          <LinearGradient
-            colors={[colors.brandLight, colors.brand]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ borderRadius: 15, padding: 16, marginBottom: 10 }}
-          >
-            <View className="flex-row items-center gap-md">
-              <View className="flex-1">
-                <Text className="font-body-bold text-[13.5px] text-white mb-[2px]">Give $20, get $20</Text>
-                <Text className="font-body text-[11.5px] text-[#F1EFFE] leading-[16px]">
-                  Friends get $20 off their first order — you get $20 credit.
-                </Text>
-              </View>
-              <Button
-                title={profile?.referralCode ?? 'LOOP20'}
-                onPress={copyCode}
-                className="px-md py-[9px]"
-                style={{ backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}
-              />
-            </View>
-          </LinearGradient>
+          <Card className="flex-1 items-center py-lg">
+            <Text className="font-display-semibold text-[22px] text-ink">{formatCurrency(stats?.totalSpent ?? 0)}</Text>
+            <Text className="font-body text-[11px] text-muted mt-[2px]">Total spent</Text>
+          </Card>
         </Animated.View>
 
         <Animated.View entering={rise()}>

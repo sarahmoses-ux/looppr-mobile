@@ -1,19 +1,66 @@
-import { ScrollView, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '../../../src/components/ScreenHeader';
 import AvatarTile from '../../../src/components/AvatarTile';
-import ChipGroup from '../../../src/components/ChipGroup';
+import Card from '../../../src/components/Card';
+import Button from '../../../src/components/Button';
 import Toggle from '../../../src/components/Toggle';
-import { useProfile, useUpdatePreferences } from '../../../src/hooks/useProfile';
+import AddressForm, { EMPTY_ADDRESS, isAddressComplete } from '../../../src/components/AddressForm';
+import { useProfile, useUpdateProfile } from '../../../src/hooks/useProfile';
+import { useAddresses, useAddAddress, useDeleteAddress } from '../../../src/hooks/useAddresses';
 import { useToast } from '../../../src/context/ToastContext';
-import { FOLD_OPTIONS, DETERGENT_OPTIONS, TEMP_OPTIONS } from '../../../src/features/customer/preferenceOptions';
 import { initials } from '../../../src/utils/format';
+import { colors } from '../../../src/theme/tokens';
 
 export default function Profile() {
   const { data: profile } = useProfile();
-  const updatePreferences = useUpdatePreferences();
+  const updateProfile = useUpdateProfile();
+  const { data: addresses } = useAddresses();
+  const addAddress = useAddAddress();
+  const deleteAddress = useDeleteAddress();
   const toast = useToast();
-  const prefs = profile?.preferences ?? {};
+
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [showAddAddress, setShowAddAddress] = useState(false);
+  const [newAddress, setNewAddress] = useState(EMPTY_ADDRESS);
+
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name ?? '');
+      setPhone(profile.phone ?? '');
+    }
+  }, [profile?.name, profile?.phone]);
+
+  const hasChanges = profile && (name !== profile.name || phone !== profile.phone);
+  const memberSince = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : null;
+
+  const onSaveProfile = () => {
+    updateProfile.mutate(
+      { name, phone },
+      {
+        onSuccess: () => toast.show('Profile updated'),
+        onError: (err) => toast.show(err.message, 'error'),
+      }
+    );
+  };
+
+  const onSaveNewAddress = async () => {
+    if (!isAddressComplete(newAddress)) return;
+    try {
+      await addAddress.mutateAsync(newAddress);
+      setShowAddAddress(false);
+      setNewAddress(EMPTY_ADDRESS);
+    } catch (err) {
+      toast.show(err.message, 'error');
+    }
+  };
+
+  const onDeleteAddress = (id) => {
+    deleteAddress.mutate({ id }, { onError: (err) => toast.show(err.message, 'error') });
+  };
 
   return (
     <SafeAreaView style={{ flex: 1 }} className="bg-bg" edges={['top']}>
@@ -23,55 +70,86 @@ export default function Profile() {
           <AvatarTile label={profile ? initials(profile.name) : ''} size={64} circle />
           <Text className="font-display-semibold text-[18px] text-ink mt-sm">{profile?.name}</Text>
           <Text className="font-body text-[12px] text-muted mt-[2px]">
-            {profile?.address} · Member since {profile?.memberSince}
+            {memberSince ? `Member since ${memberSince}` : ''}
           </Text>
         </View>
 
-        <ChipGroup
-          label="Fold style"
-          options={FOLD_OPTIONS}
-          value={prefs.fold}
-          onChange={(fold) => updatePreferences.mutate({ fold })}
-        />
-        <ChipGroup
-          label="Detergent"
-          options={DETERGENT_OPTIONS}
-          value={prefs.detergent}
-          onChange={(detergent) => updatePreferences.mutate({ detergent })}
-        />
-        <ChipGroup
-          label="Water temp"
-          options={TEMP_OPTIONS}
-          value={prefs.temp}
-          onChange={(temp) => updatePreferences.mutate({ temp })}
-        />
+        <Text className="font-body-bold text-[11px] tracking-wider uppercase text-muted mb-sm">Contact info</Text>
+        <Card className="mb-lg gap-sm">
+          <View>
+            <Text className="font-body-bold text-[10px] tracking-wider uppercase text-muted mb-[2px]">Full name</Text>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              className="font-body-semibold text-[13.5px] text-ink p-0"
+            />
+          </View>
+          <View className="h-[1px] bg-divider" />
+          <View>
+            <Text className="font-body-bold text-[10px] tracking-wider uppercase text-muted mb-[2px]">Phone</Text>
+            <TextInput
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              className="font-body-semibold text-[13.5px] text-ink p-0"
+            />
+          </View>
+          {hasChanges ? (
+            <Button title="Save changes" onPress={onSaveProfile} loading={updateProfile.isPending} className="mt-sm" />
+          ) : null}
+        </Card>
 
-        <View className="bg-white border border-border rounded-md px-lg py-[13px] flex-row items-center gap-md mb-sm">
+        <View className="bg-white border border-border rounded-md px-lg py-[13px] flex-row items-center gap-md mb-2xl">
           <View className="flex-1">
-            <Text className="font-body-bold text-[13px] text-ink">Fabric softener</Text>
-            <Text className="font-body text-[11.5px] text-muted">Applied to every order</Text>
+            <Text className="font-body-bold text-[13px] text-ink">Email notifications</Text>
+            <Text className="font-body text-[11.5px] text-muted">Order updates & receipts</Text>
           </View>
-          <Toggle value={Boolean(prefs.softener)} onValueChange={(softener) => updatePreferences.mutate({ softener })} />
-        </View>
-        <View className="bg-white border border-border rounded-md px-lg py-[13px] flex-row items-center gap-md mb-lg">
-          <View className="flex-1">
-            <Text className="font-body-bold text-[13px] text-ink">Weekly pickup</Text>
-            <Text className="font-body text-[11.5px] text-muted">{prefs.recurring ? 'Every Sunday, 4-6 PM' : 'Not scheduled'}</Text>
-          </View>
-          <Toggle value={Boolean(prefs.recurring)} onValueChange={(recurring) => updatePreferences.mutate({ recurring })} />
+          <Toggle
+            value={Boolean(profile?.emailNotifications)}
+            onValueChange={(v) => updateProfile.mutate({ emailNotifications: v })}
+          />
         </View>
 
-        <View className="bg-white border border-border rounded-md px-lg py-[13px] flex-row items-center gap-md">
-          <View className="flex-1">
-            <Text className="font-body-bold text-[13px] text-ink">Referral code</Text>
-            <Text className="font-body text-[11.5px] text-muted">$20 credit per friend you refer</Text>
-          </View>
-          <Text
-            className="font-body-bold text-[12px] text-brandDeep"
-            onPress={() => toast.show(`Referral code ${profile?.referralCode} copied`)}
-          >
-            Copy
-          </Text>
+        <View className="flex-row items-center justify-between mb-sm">
+          <Text className="font-body-bold text-[11px] tracking-wider uppercase text-muted">Saved addresses</Text>
+          <Pressable onPress={() => setShowAddAddress((v) => !v)}>
+            <Text className="font-body-bold text-[11.5px] text-brandDeep">{showAddAddress ? 'Cancel' : '+ Add'}</Text>
+          </Pressable>
+        </View>
+
+        {showAddAddress ? (
+          <Card className="mb-md">
+            <AddressForm value={newAddress} onChange={setNewAddress} showLabel />
+            <Button
+              title="Save address"
+              className="mt-md"
+              loading={addAddress.isPending}
+              disabled={!isAddressComplete(newAddress)}
+              onPress={onSaveNewAddress}
+            />
+          </Card>
+        ) : null}
+
+        <View className="gap-sm">
+          {(addresses ?? []).map((a) => (
+            <View key={a._id} className="flex-row items-center gap-md bg-white border border-border rounded-md px-lg py-[13px]">
+              <View className="w-9 h-9 rounded-md bg-tint items-center justify-center">
+                <Ionicons name="location-outline" size={16} color={colors.brandDeep} />
+              </View>
+              <View className="flex-1 min-w-0">
+                <Text className="font-body-bold text-[13px] text-ink">{a.label}</Text>
+                <Text className="font-body text-[11.5px] text-muted" numberOfLines={1}>
+                  {a.street}{a.apartment ? `, ${a.apartment}` : ''}, {a.city}, {a.state} {a.zip}
+                </Text>
+              </View>
+              <Pressable onPress={() => onDeleteAddress(a._id)} className="p-[6px]">
+                <Ionicons name="trash-outline" size={16} color={colors.faint} />
+              </Pressable>
+            </View>
+          ))}
+          {!addresses?.length && !showAddAddress ? (
+            <Text className="font-body text-[12px] text-muted text-center py-lg">No saved addresses yet.</Text>
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>

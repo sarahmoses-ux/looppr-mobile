@@ -6,12 +6,16 @@ import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, Eas
 import BackButton from '../../src/components/BackButton';
 import StatusPill from '../../src/components/StatusPill';
 import { Ionicons } from '@expo/vector-icons';
-import { useOrder } from '../../src/hooks/useOrders';
+import { useMyPickups } from '../../src/hooks/usePickups';
 import { buildTrackSteps } from '../../src/features/customer/trackSteps';
-import { ORDER_STAGE_LABEL, ORDER_STAGE_PILL } from '../../src/constants/orderStages';
+import { pickupStatusLabel, pickupStatusPillVariant } from '../../src/constants/pickupStatus';
+import { WINDOW_OPTIONS } from '../../src/features/customer/bookingOptions';
+import { initials } from '../../src/utils/format';
 import { colors } from '../../src/theme/tokens';
 
-function RouteViz({ vendorShort }) {
+const windowLabel = (key) => WINDOW_OPTIONS.find((w) => w.key === key)?.label ?? key;
+
+function RouteViz() {
   const dot = useSharedValue(0);
 
   useEffect(() => {
@@ -38,7 +42,7 @@ function RouteViz({ vendorShort }) {
           <View className="w-9 h-9 rounded-full bg-tint items-center justify-center mb-[4px]">
             <Text className="font-body-bold text-[11px] text-brandDeep">🧺</Text>
           </View>
-          <Text className="font-body-bold text-[10.5px] text-muted" numberOfLines={1}>{vendorShort}</Text>
+          <Text className="font-body-bold text-[10.5px] text-muted" numberOfLines={1}>Looppr</Text>
         </View>
       </View>
     </View>
@@ -68,23 +72,27 @@ function SpinnerRing() {
 
 export default function Track() {
   const { orderId } = useLocalSearchParams();
-  const { data: order } = useOrder(orderId);
+  const { data: pickups } = useMyPickups();
+  const order = pickups?.find((p) => p._id === orderId);
   const steps = buildTrackSteps(order);
+  const driver = order?.driverUserId;
 
   return (
     <SafeAreaView style={{ flex: 1 }} className="bg-bg">
       <View className="flex-row items-center gap-md px-lg pt-lg pb-md">
         <BackButton onPress={() => router.back()} />
         <View className="flex-1 min-w-0">
-          <Text className="font-display-semibold text-[16px] text-ink" numberOfLines={1}>{orderId} · {order?.vendor?.name}</Text>
-          <Text className="font-body text-[11.5px] text-muted">ETA {order?.window}</Text>
+          <Text className="font-display-semibold text-[16px] text-ink" numberOfLines={1}>
+            {orderId?.slice?.(-6)?.toUpperCase()} · {order?.address?.street}
+          </Text>
+          <Text className="font-body text-[11.5px] text-muted">{windowLabel(order?.window)} pickup</Text>
         </View>
-        {order ? <StatusPill label={ORDER_STAGE_LABEL[order.stage]} variant={ORDER_STAGE_PILL[order.stage]} /> : null}
+        {order ? <StatusPill label={pickupStatusLabel(order.status)} variant={pickupStatusPillVariant(order.status)} /> : null}
       </View>
 
       <ScrollView className="px-lg" contentContainerStyle={{ paddingBottom: 24 }}>
         <Animated.View entering={FadeInDown.delay(0).duration(360)}>
-          <RouteViz vendorShort={order?.vendor?.name?.slice(0, 8) ?? 'Facility'} />
+          <RouteViz />
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(70).duration(360)} className="bg-white border border-border rounded-md p-lg mb-md">
@@ -122,15 +130,21 @@ export default function Track() {
             className="w-[38px] h-[38px] rounded-full items-center justify-center"
             style={{ backgroundColor: colors.brandDeep }}
           >
-            <Text className="font-display-semibold text-[13px] text-white">JA</Text>
+            <Text className="font-display-semibold text-[13px] text-white">{driver ? initials(driver.name) : '?'}</Text>
           </View>
           <View className="flex-1">
-            <Text className="font-body-bold text-[13px] text-ink">Jeffrey — your Looppr driver</Text>
-            <Text className="font-body text-[11.5px] text-muted">Founder-operated route · Edmond</Text>
+            <Text className="font-body-bold text-[13px] text-ink">
+              {driver ? `${driver.name} — your Looppr driver` : 'Driver not yet assigned'}
+            </Text>
+            <Text className="font-body text-[11.5px] text-muted">
+              {driver ? (driver.vehicleName ?? driver.vehicleType ?? 'On the way') : "We'll assign one shortly"}
+            </Text>
           </View>
-          <View className="w-9 h-9 rounded-sm border border-borderInput items-center justify-center" style={{ backgroundColor: colors.surface }}>
-            <Ionicons name="chatbubble-outline" size={15} color={colors.brandDeep} />
-          </View>
+          {driver ? (
+            <View className="w-9 h-9 rounded-sm border border-borderInput items-center justify-center" style={{ backgroundColor: colors.surface }}>
+              <Ionicons name="chatbubble-outline" size={15} color={colors.brandDeep} />
+            </View>
+          ) : null}
         </Animated.View>
       </ScrollView>
     </SafeAreaView>

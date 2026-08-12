@@ -1,64 +1,18 @@
 import { apiClient } from './client';
 import { env } from '../../config/env';
-import { orders, vendors, nextId } from './mock/db';
+import { orders, vendors } from './mock/db';
 import { ORDER_STAGE, ORDER_STAGE_ORDER } from '../../constants/orderStages';
 
+// Customer-facing order creation/listing/rating now lives on
+// pickups.api.js against the real PickupRequest model — everything below
+// is driver/partner-only mock data (still on the old vendor/services shape)
+// and is unrelated to that.
 function delay(ms = 300) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function withVendor(order) {
   return { ...order, vendor: vendors.find((v) => v.id === order.vendorId) };
-}
-
-export async function fetchVendors() {
-  if (env.useMockApi) {
-    await delay(150);
-    return vendors;
-  }
-  const { data } = await apiClient.get('/vendors');
-  return data;
-}
-
-export async function fetchOrders({ customerEmail }) {
-  if (env.useMockApi) {
-    await delay();
-    return orders.filter((o) => o.customerEmail === customerEmail).map(withVendor);
-  }
-  const { data } = await apiClient.get('/orders', { params: { customerEmail } });
-  return data;
-}
-
-export async function fetchOrder({ orderId }) {
-  if (env.useMockApi) {
-    await delay(150);
-    const order = orders.find((o) => o.id === orderId);
-    return order ? withVendor(order) : null;
-  }
-  const { data } = await apiClient.get(`/orders/${orderId}`);
-  return data;
-}
-
-export async function createOrder({ customerEmail, vendorId, services, address, window, total, driverEmail }) {
-  if (env.useMockApi) {
-    await delay(400);
-    const order = {
-      id: nextId('LP'),
-      customerEmail,
-      vendorId,
-      stage: ORDER_STAGE.PICKUP_QUEUE,
-      services,
-      address,
-      window,
-      total,
-      driverEmail: driverEmail ?? null,
-      createdAt: new Date().toISOString(),
-    };
-    orders.unshift(order);
-    return withVendor(order);
-  }
-  const { data } = await apiClient.post('/orders', { customerEmail, vendorId, services, address, window, total });
-  return data;
 }
 
 export async function advanceOrderStage({ orderId }) {
@@ -71,17 +25,6 @@ export async function advanceOrderStage({ orderId }) {
     return withVendor(order);
   }
   const { data } = await apiClient.post(`/orders/${orderId}/advance`);
-  return data;
-}
-
-export async function rateOrder({ orderId, stars }) {
-  if (env.useMockApi) {
-    await delay(200);
-    const order = orders.find((o) => o.id === orderId);
-    if (order) order.rating = stars;
-    return order ? withVendor(order) : null;
-  }
-  const { data } = await apiClient.post(`/orders/${orderId}/rate`, { stars });
   return data;
 }
 

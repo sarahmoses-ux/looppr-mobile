@@ -27,7 +27,13 @@ export const env = {
   useMockBusinessAuth: resolveMockFlag(extra.useMockBusinessAuth, process.env.EXPO_PUBLIC_USE_MOCK_BUSINESS_AUTH),
   useMockPartnerAuth: resolveMockFlag(extra.useMockPartnerAuth, process.env.EXPO_PUBLIC_USE_MOCK_PARTNER_AUTH),
   useMockDriverAuth: resolveMockFlag(extra.useMockDriverAuth, process.env.EXPO_PUBLIC_USE_MOCK_DRIVER_AUTH),
+  // Same independence as the auth flags above, scoped to the residential
+  // pickups/addresses domain (pickups.api.js, addresses.api.js) — everything
+  // else non-auth (vendors, business/driver/partner data) still stays on
+  // useMockApi until those get wired up the same way.
+  useMockCustomerOrders: resolveMockFlag(extra.useMockCustomerOrders, process.env.EXPO_PUBLIC_USE_MOCK_CUSTOMER_ORDERS),
   googleMapsApiKey: extra.googleMapsApiKey ?? process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '',
+  stripePublishableKey: extra.stripePublishableKey ?? process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '',
 };
 
 export default env;

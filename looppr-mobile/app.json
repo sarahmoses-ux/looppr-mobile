@@ -53,12 +53,20 @@
         {
           "androidGoogleMapsApiKey": ""
         }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.getlooppr.mobile",
+          "enableGooglePay": false
+        }
       ]
     ],
     "extra": {
       "apiBaseUrl": "https://api.getlooppr.com/v1",
       "useMockApi": true,
-      "googleMapsApiKey": ""
+      "googleMapsApiKey": "",
+      "stripePublishableKey": "pk_live_51LfGPXEH073JFgHUF57yUF926jQlJGyqZDYSOQaeHE2sWcGcIrH0bT9RoW9BGi0e0FxXPx0jOSpIbZXqbR8rqUHl00vgZKgAi0"
     }
   }
 }
