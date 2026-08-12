@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'looppr_settings';
 
-const initialState = { notificationsEnabled: true, darkMode: false, hydrated: false };
+const initialState = { notificationsEnabled: true, hydrated: false };
 
 function reducer(state, action) {
   switch (action.type) {
@@ -11,8 +11,6 @@ function reducer(state, action) {
       return { ...state, ...action.payload, hydrated: true };
     case 'toggleNotifications':
       return { ...state, notificationsEnabled: !state.notificationsEnabled };
-    case 'toggleDarkMode':
-      return { ...state, darkMode: !state.darkMode };
     default:
       return state;
   }
@@ -35,15 +33,14 @@ export function SettingsProvider({ children }) {
 
   useEffect(() => {
     if (!state.hydrated) return;
-    const { notificationsEnabled, darkMode } = state;
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ notificationsEnabled, darkMode }));
-  }, [state.notificationsEnabled, state.darkMode, state.hydrated]);
+    const { notificationsEnabled } = state;
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ notificationsEnabled }));
+  }, [state.notificationsEnabled, state.hydrated]);
 
   const value = useMemo(
     () => ({
       ...state,
       toggleNotifications: () => dispatch({ type: 'toggleNotifications' }),
-      toggleDarkMode: () => dispatch({ type: 'toggleDarkMode' }),
     }),
     [state]
   );
