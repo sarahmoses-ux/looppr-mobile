@@ -1,5 +1,6 @@
 import { forwardRef, useCallback, useMemo } from 'react';
 import { Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/tokens';
@@ -21,6 +22,15 @@ const SettingsSheet = forwardRef(function SettingsSheet(_props, ref) {
   const close = useCallback(() => {
     ref?.current?.dismiss();
   }, [ref]);
+
+  // signOut() only clears auth state — nothing in expo-router's Slot-based
+  // root layout reacts to that on its own, so without this the current
+  // (now-unauthenticated) screen would just stay mounted, broken.
+  const handleLogout = useCallback(async () => {
+    close();
+    await signOut();
+    router.replace('/');
+  }, [close, signOut]);
 
   return (
     <BottomSheetModal ref={ref} snapPoints={snapPoints} backgroundStyle={{ backgroundColor: colors.surface, borderRadius: 22 }}>
@@ -54,13 +64,29 @@ const SettingsSheet = forwardRef(function SettingsSheet(_props, ref) {
             <Text className="flex-1 font-body-bold text-[13px] text-ink">Notifications</Text>
             <Toggle value={notificationsEnabled} onValueChange={toggleNotifications} />
           </View>
-          <View className="flex-row items-center gap-md px-md py-[12px]">
+          <View className="flex-row items-center gap-md px-md py-[12px] border-b border-divider">
             <Text className="flex-1 font-body-bold text-[13px] text-ink">Dark mode</Text>
             <Toggle value={darkMode} onValueChange={toggleDarkMode} />
           </View>
+          <View className="flex-row items-center gap-md px-md py-[12px]">
+            <Text className="flex-1 font-body-bold text-[13px] text-ink">Language</Text>
+            <Text className="font-body-semibold text-[12px] text-muted">English ›</Text>
+          </View>
         </View>
 
-        <Button title="Log out" variant="danger" onPress={() => { close(); signOut(); }} />
+        <Text className="font-body-bold text-[10.5px] tracking-wider uppercase text-muted mb-sm ml-[2px]">Security & support</Text>
+        <View className="bg-white border border-border rounded-md mb-lg">
+          <View className="flex-row items-center gap-md px-md py-[12px] border-b border-divider">
+            <Text className="flex-1 font-body-bold text-[13px] text-ink">Account security</Text>
+            <Text className="font-body-semibold text-[12px] text-faint">›</Text>
+          </View>
+          <View className="flex-row items-center gap-md px-md py-[12px]">
+            <Text className="flex-1 font-body-bold text-[13px] text-ink">Help center</Text>
+            <Text className="font-body-semibold text-[12px] text-faint">›</Text>
+          </View>
+        </View>
+
+        <Button title="Log out" variant="danger" onPress={handleLogout} />
       </BottomSheetView>
     </BottomSheetModal>
   );
