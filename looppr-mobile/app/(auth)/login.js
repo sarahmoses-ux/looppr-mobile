@@ -73,6 +73,7 @@ function OtpStep({ role, roleLabel, roleCopy, otpState, onBack }) {
           keyboardType="number-pad"
           maxLength={6}
           placeholder="123456"
+          placeholderTextColor={colors.faint}
           className="font-body-semibold text-[13.5px] text-ink mt-[2px] p-0"
         />
       </View>
@@ -159,6 +160,7 @@ export default function Login() {
                   onChangeText={onChange}
                   onBlur={onBlur}
                   placeholder="Maya Thompson"
+                  placeholderTextColor={colors.faint}
                   className="font-body-semibold text-[13.5px] text-ink mt-[2px] p-0"
                 />
               </View>
@@ -180,6 +182,7 @@ export default function Login() {
                   onBlur={onBlur}
                   keyboardType="phone-pad"
                   placeholder="(405) 555-0134"
+                  placeholderTextColor={colors.faint}
                   className="font-body-semibold text-[13.5px] text-ink mt-[2px] p-0"
                 />
               </View>
@@ -201,6 +204,7 @@ export default function Login() {
                 autoCapitalize="none"
                 keyboardType="email-address"
                 placeholder="maya@hazelct.com"
+                placeholderTextColor={colors.faint}
                 className="font-body-semibold text-[13.5px] text-ink mt-[2px] p-0"
               />
             </View>
@@ -220,6 +224,7 @@ export default function Login() {
                 onBlur={onBlur}
                 secureTextEntry
                 placeholder="••••••••"
+                placeholderTextColor={colors.faint}
                 className="font-body-semibold text-[13.5px] text-ink mt-[2px] p-0"
               />
             </View>

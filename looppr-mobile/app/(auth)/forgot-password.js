@@ -92,6 +92,7 @@ function ResetStep({ role, roleCopy, email, onBack }) {
               keyboardType="number-pad"
               maxLength={6}
               placeholder="123456"
+              placeholderTextColor={colors.faint}
               className="font-body-semibold text-[13.5px] text-ink mt-[2px] p-0"
             />
           </View>
@@ -111,6 +112,7 @@ function ResetStep({ role, roleCopy, email, onBack }) {
               onBlur={onBlur}
               secureTextEntry
               placeholder="••••••••"
+              placeholderTextColor={colors.faint}
               className="font-body-semibold text-[13.5px] text-ink mt-[2px] p-0"
             />
           </View>
@@ -203,6 +205,7 @@ export default function ForgotPassword() {
                 autoCapitalize="none"
                 keyboardType="email-address"
                 placeholder="maya@hazelct.com"
+                placeholderTextColor={colors.faint}
                 className="font-body-semibold text-[13.5px] text-ink mt-[2px] p-0"
               />
             </View>
