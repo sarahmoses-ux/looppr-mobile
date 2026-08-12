@@ -163,12 +163,12 @@ export async function login({ email, password, role }) {
 
   const { data } = await apiClient.post(cfg.loginPath, { email, password });
   if (!data.accessToken) throw loginBlockedError(data);
-  return { user: toMobileUser(role, data[cfg.userKey]), token: data.accessToken };
+  return { user: toMobileUser(role, data[cfg.userKey]), token: data.accessToken, refreshToken: data.refreshToken };
 }
 
 export async function verifyLoginOtp({ challengeToken, code }) {
   const { data } = await apiClient.post('/auth/client/login/verify-otp', { challengeToken, code });
-  return { user: toMobileUser(ROLES.RESIDENTIAL, data.user), token: data.accessToken };
+  return { user: toMobileUser(ROLES.RESIDENTIAL, data.user), token: data.accessToken, refreshToken: data.refreshToken };
 }
 
 export async function resendLoginOtp({ challengeToken }) {
@@ -185,7 +185,7 @@ export async function register({ email, password, role, name, phone }) {
   if (env.useMockCustomerAuth) return mockRegister({ email, password, role, name });
 
   const { data } = await apiClient.post('/auth/client/register', { name, email, phone, password });
-  return { user: toMobileUser(ROLES.RESIDENTIAL, data.user), token: data.accessToken };
+  return { user: toMobileUser(ROLES.RESIDENTIAL, data.user), token: data.accessToken, refreshToken: data.refreshToken };
 }
 
 export async function fetchMe({ email } = {}) {
@@ -223,7 +223,7 @@ export async function resetPassword({ email, code, newPassword, role }) {
   if (isMockAuth(role)) return mockResetPassword({ email });
   const cfg = AUTH_CONFIG[role];
   const { data } = await apiClient.post(cfg.resetPasswordPath, { email, code, newPassword });
-  return { user: toMobileUser(role, data[cfg.userKey]), token: data.accessToken };
+  return { user: toMobileUser(role, data[cfg.userKey]), token: data.accessToken, refreshToken: data.refreshToken };
 }
 
 export async function fetchOwnedAccounts({ email }) {

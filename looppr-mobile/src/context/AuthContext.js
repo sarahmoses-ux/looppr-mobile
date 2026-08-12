@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import * as authApi from '../services/api/auth.api';
-import { setStoredToken } from '../services/api/client';
+import { setStoredAuth, clearStoredAuth } from '../services/api/client';
 
 const SESSION_KEY = 'looppr_session';
 
@@ -30,8 +30,15 @@ export function AuthProvider({ children }) {
     })();
   }, []);
 
-  const persist = useCallback(async (nextUser, nextRole, token) => {
-    await setStoredToken(token ?? null);
+  // client.js's own auth store ({accessToken, refreshToken, role}) is what
+  // actually authenticates API requests and refreshes on 401 — this is kept
+  // separate from it, purely for the UI (who's signed in, which dashboard).
+  const persist = useCallback(async (nextUser, nextRole, accessToken, refreshToken) => {
+    if (accessToken) {
+      await setStoredAuth({ accessToken, refreshToken: refreshToken ?? null, role: nextRole });
+    } else {
+      await clearStoredAuth();
+    }
     await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify({ user: nextUser, currentRole: nextRole }));
   }, []);
 
@@ -44,20 +51,20 @@ export function AuthProvider({ children }) {
     const result = await authApi.login({ email, password, role });
     if (result.requiresOtp) return result;
 
-    const { user: signedInUser, token } = result;
+    const { user: signedInUser, token, refreshToken } = result;
     setUser(signedInUser);
     setCurrentRole(role);
     setStatus('signedIn');
-    await persist(signedInUser, role, token);
+    await persist(signedInUser, role, token, refreshToken);
     return signedInUser;
   }, [persist]);
 
   const verifyOtp = useCallback(async ({ challengeToken, code, role }) => {
-    const { user: signedInUser, token } = await authApi.verifyLoginOtp({ challengeToken, code });
+    const { user: signedInUser, token, refreshToken } = await authApi.verifyLoginOtp({ challengeToken, code });
     setUser(signedInUser);
     setCurrentRole(role);
     setStatus('signedIn');
-    await persist(signedInUser, role, token);
+    await persist(signedInUser, role, token, refreshToken);
     return signedInUser;
   }, [persist]);
 
@@ -69,32 +76,32 @@ export function AuthProvider({ children }) {
   // straight in (they've already proven email ownership), so this mirrors
   // verifyOtp above rather than just resolving a plain success message.
   const resetPassword = useCallback(async ({ email, code, newPassword, role }) => {
-    const { user: signedInUser, token } = await authApi.resetPassword({ email, code, newPassword, role });
+    const { user: signedInUser, token, refreshToken } = await authApi.resetPassword({ email, code, newPassword, role });
     setUser(signedInUser);
     setCurrentRole(role);
     setStatus('signedIn');
-    await persist(signedInUser, role, token);
+    await persist(signedInUser, role, token, refreshToken);
     return signedInUser;
   }, [persist]);
 
   const signUp = useCallback(async ({ email, password, role, name, phone }) => {
-    const { user: newUser, token } = await authApi.register({ email, password, role, name, phone });
+    const { user: newUser, token, refreshToken } = await authApi.register({ email, password, role, name, phone });
     setUser(newUser);
     setCurrentRole(role);
     setStatus('signedIn');
-    await persist(newUser, role, token);
+    await persist(newUser, role, token, refreshToken);
     return newUser;
   }, [persist]);
 
   const switchRole = useCallback(async (role) => {
     if (!user?.ownedRoles?.includes(role)) return;
     setCurrentRole(role);
-    await persist(user, role);
-  }, [user, persist]);
+    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify({ user, currentRole: role }));
+  }, [user]);
 
   const signOut = useCallback(async () => {
     await authApi.logout({ role: currentRole });
-    await setStoredToken(null);
+    await clearStoredAuth();
     await SecureStore.deleteItemAsync(SESSION_KEY);
     setUser(null);
     setCurrentRole(null);
