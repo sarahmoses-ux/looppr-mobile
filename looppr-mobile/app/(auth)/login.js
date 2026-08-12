@@ -9,7 +9,7 @@ import AvatarTile from '../../src/components/AvatarTile';
 import Button from '../../src/components/Button';
 import { loginSchema, registerSchema, otpSchema } from '../../src/features/auth/authSchemas';
 import { AUTH_ROLE_COPY } from '../../src/features/auth/roleOptions';
-import { ROLE_LABEL } from '../../src/constants/roles';
+import { ROLE_LABEL, ROLE_HOME_ROUTE } from '../../src/constants/roles';
 import { useAuth } from '../../src/context/AuthContext';
 import { useToast } from '../../src/context/ToastContext';
 import { colors } from '../../src/theme/tokens';
@@ -35,7 +35,7 @@ function OtpStep({ role, roleLabel, roleCopy, otpState, onBack }) {
       if (signedInUser.ownedRoles.length > 1) {
         router.replace('/(auth)/choose-account');
       } else {
-        router.replace('/');
+        router.replace(ROLE_HOME_ROUTE[role]);
       }
     } catch (err) {
       setError(err.message);
@@ -122,7 +122,7 @@ export default function Login() {
       if (result.ownedRoles.length > 1) {
         router.replace('/(auth)/choose-account');
       } else {
-        router.replace('/');
+        router.replace(ROLE_HOME_ROUTE[role]);
       }
     } catch (err) {
       setServerError(err.message);

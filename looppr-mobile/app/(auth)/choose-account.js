@@ -5,7 +5,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import AuthShell from '../../src/features/auth/AuthShell';
 import AvatarTile from '../../src/components/AvatarTile';
 import { AUTH_ROLE_COPY } from '../../src/features/auth/roleOptions';
-import { ROLE_LABEL } from '../../src/constants/roles';
+import { ROLE_LABEL, ROLE_HOME_ROUTE } from '../../src/constants/roles';
 import { useAuth } from '../../src/context/AuthContext';
 import { colors } from '../../src/theme/tokens';
 
@@ -18,7 +18,7 @@ export default function ChooseAccount() {
 
   const enter = async (role) => {
     await switchRole(role);
-    router.replace('/');
+    router.replace(ROLE_HOME_ROUTE[role]);
   };
 
   const useDifferentAccount = async () => {

@@ -9,7 +9,7 @@ import AvatarTile from '../../src/components/AvatarTile';
 import Button from '../../src/components/Button';
 import { forgotPasswordEmailSchema, resetPasswordSchema } from '../../src/features/auth/authSchemas';
 import { AUTH_ROLE_COPY } from '../../src/features/auth/roleOptions';
-import { ROLES } from '../../src/constants/roles';
+import { ROLES, ROLE_HOME_ROUTE } from '../../src/constants/roles';
 import { useAuth } from '../../src/context/AuthContext';
 import { useToast } from '../../src/context/ToastContext';
 import { colors } from '../../src/theme/tokens';
@@ -63,7 +63,7 @@ function ResetStep({ role, roleCopy, email, onBack }) {
       if (signedInUser.ownedRoles.length > 1) {
         router.replace('/(auth)/choose-account');
       } else {
-        router.replace('/');
+        router.replace(ROLE_HOME_ROUTE[role]);
       }
     } catch (err) {
       setServerError(err.message);

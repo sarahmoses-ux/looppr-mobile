@@ -14,6 +14,8 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import AuthShell from '../../src/features/auth/AuthShell';
+import { useAuth } from '../../src/context/AuthContext';
+import { ROLE_HOME_ROUTE } from '../../src/constants/roles';
 import { colors } from '../../src/theme/tokens';
 
 const AUTO_ADVANCE_MS = 2400;
@@ -55,12 +57,21 @@ function Bubble({ size, left, delay }) {
 }
 
 export default function Splash() {
+  const { status, currentRole } = useAuth();
   const glow = useSharedValue(0.5);
   const fill = useSharedValue(0);
   const pop = useSharedValue(0.82);
   const draw = useSharedValue(0);
   const spin = useSharedValue(0);
   const textUp = useSharedValue(0);
+
+  const goNext = () => {
+    if (status === 'signedIn' && currentRole) {
+      router.replace(ROLE_HOME_ROUTE[currentRole]);
+    } else {
+      router.replace('/(auth)/onboarding');
+    }
+  };
 
   useEffect(() => {
     pop.value = withTiming(1, { duration: 500, easing: Easing.out(Easing.back(1.2)) });
@@ -71,7 +82,7 @@ export default function Splash() {
     spin.value = withDelay(750, withRepeat(withTiming(1, { duration: 5200, easing: Easing.linear }), -1, false));
     textUp.value = withDelay(260, withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) }));
 
-    const timer = setTimeout(() => router.replace('/(auth)/onboarding'), AUTO_ADVANCE_MS);
+    const timer = setTimeout(goNext, AUTO_ADVANCE_MS);
     return () => clearTimeout(timer);
   }, []);
 
@@ -90,7 +101,7 @@ export default function Splash() {
   return (
     <AuthShell>
       <Pressable
-        onPress={() => router.replace('/(auth)/onboarding')}
+        onPress={goNext}
         className="flex-1 items-center justify-center"
       >
         {BUBBLES.map((b, i) => (
