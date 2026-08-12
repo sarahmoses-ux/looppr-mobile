@@ -2,14 +2,18 @@ import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import ScreenHeader from '../../../src/components/ScreenHeader';
-import StatusPill from '../../../src/components/StatusPill';
-import { usePartnerPayouts } from '../../../src/hooks/usePartner';
+import { usePartnerEarnings } from '../../../src/hooks/usePartner';
 import { formatCurrency } from '../../../src/utils/format';
-import { colors } from '../../../src/theme/tokens';
 
 export default function Payouts() {
-  const { data: payouts } = usePartnerPayouts();
-  const pending = payouts?.find((p) => p.status === 'Pending');
+  const { data: earnings } = usePartnerEarnings();
+
+  const rows = [
+    { label: 'This week', value: formatCurrency(earnings?.weeklyRevenue ?? 0) },
+    { label: 'This month', value: formatCurrency(earnings?.monthlyRevenue ?? 0) },
+    { label: 'All time', value: formatCurrency(earnings?.totalRevenue ?? 0) },
+    { label: 'Completed payouts', value: formatCurrency(earnings?.completedPayouts ?? 0) },
+  ];
 
   return (
     <SafeAreaView style={{ flex: 1 }} className="bg-bg" edges={['top']}>
@@ -23,25 +27,21 @@ export default function Payouts() {
           <Text className="font-body-bold text-[11.5px] tracking-wider uppercase mb-sm" style={{ color: '#7CE6B8' }}>
             Pending payout
           </Text>
-          <Text className="font-display-semibold text-[38px] text-white">{formatCurrency(pending?.total ?? 0)}</Text>
+          <Text className="font-display-semibold text-[38px] text-white">{formatCurrency(earnings?.pendingPayments ?? 0)}</Text>
           <Text className="font-body text-[12px] mt-sm" style={{ color: '#BFE8D8' }}>
             Deposits every Friday via Stripe
           </Text>
         </Animated.View>
 
-        <View className="gap-sm">
-          {(payouts ?? []).map((p, i) => (
-            <Animated.View
-              key={p.id}
-              entering={FadeInDown.delay(70 + i * 70).duration(360)}
-              className="flex-row items-center gap-md bg-white border border-border rounded-md px-lg py-[13px]"
+        <View className="bg-white border border-border rounded-md">
+          {rows.map((row, i) => (
+            <View
+              key={row.label}
+              className={`flex-row items-center justify-between px-lg py-[13px] ${i < rows.length - 1 ? 'border-b border-divider' : ''}`}
             >
-              <View className="flex-1 min-w-0">
-                <Text className="font-body-bold text-[13.5px] text-ink">{formatCurrency(p.total)}</Text>
-                <Text className="font-body text-[11.5px] text-muted">{p.label}</Text>
-              </View>
-              <StatusPill label={p.status} variant={p.status === 'Paid' ? 'done' : 'warn'} />
-            </Animated.View>
+              <Text className="font-body-bold text-[13px] text-ink">{row.label}</Text>
+              <Text className="font-body-semibold text-[13px] text-muted">{row.value}</Text>
+            </View>
           ))}
         </View>
       </ScrollView>

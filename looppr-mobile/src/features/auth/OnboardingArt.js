@@ -15,7 +15,7 @@ import Animated, {
   interpolate,
 } from 'react-native-reanimated';
 import { colors } from '../../theme/tokens';
-import { ORDER_STAGE_ORDER, ORDER_STAGE_LABEL } from '../../constants/orderStages';
+import { PICKUP_STATUS_ORDER as ORDER_STAGE_ORDER, PICKUP_STATUS_LABEL as ORDER_STAGE_LABEL } from '../../constants/pickupStatus';
 import { ROLES } from '../../constants/roles';
 import { AUTH_ROLE_COPY } from './roleOptions';
 

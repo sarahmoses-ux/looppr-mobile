@@ -8,7 +8,7 @@ export default function BusinessTabsLayout() {
       tabBar={(props) => <TabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
-      <Tabs.Screen name="home" options={{ title: 'Properties', tabBarIcon: 'business-outline' }} />
+      <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: 'business-outline' }} />
       <Tabs.Screen name="invoices" options={{ title: 'Invoices', tabBarIcon: 'receipt-outline' }} />
     </Tabs>
   );

@@ -1,7 +1,7 @@
 // Mirrors looppr-backend/constants/orderStatus.js exactly — a real pickup
-// only ever has these statuses. Kept separate from constants/orderStages.js
-// (which is the customer/driver/partner *mock* 5-stage pipeline still used
-// by the driver and partner tabs) since the two are unrelated shapes.
+// only ever has these statuses (the customer-facing status field on
+// PickupRequest; driver/partner-internal progress uses driverStage.js and
+// partnerStage.js instead).
 export const PICKUP_STATUS = {
   REQUEST_RECEIVED: 'request_received',
   PICKUP: 'pickup',

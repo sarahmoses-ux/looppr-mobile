@@ -1,61 +1,66 @@
 import { apiClient } from './client';
 import { env } from '../../config/env';
-import { orders, nextId } from './mock/db';
-import { ORDER_STAGE } from '../../constants/orderStages';
 
-function delay(ms = 250) {
+function delay(ms = 300) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const PROPERTIES_SEED = [
-  { id: 'prop-1', name: 'Hazel Ct Unit A', sub: 'Turnover-synced · 2×/week', status: 'Scheduled' },
-  { id: 'prop-2', name: 'Hazel Ct Unit B', sub: 'Turnover-synced · 2×/week', status: 'Scheduled' },
-  { id: 'prop-3', name: 'Downtown Loft', sub: 'On request', status: 'Auto' },
-];
+// Mock store mirrors looppr-backend's PickupRequest shape scoped to a
+// business, not the old vendor/services mock shape in mock/db.js.
+let mockPickups = [];
+let mockIdSeq = 1;
 
-export async function fetchProperties() {
-  if (env.useMockApi) {
-    await delay();
-    return PROPERTIES_SEED;
+export async function fetchOverview() {
+  if (env.useMockBusinessOps) {
+    await delay(150);
+    const active = mockPickups.filter((p) => ['request_received', 'pickup', 'laundry_in_progress'].includes(p.status));
+    const completed = mockPickups.filter((p) => p.status === 'ready_delivered');
+    const upcoming = active
+      .filter((p) => new Date(p.preferredDate) >= new Date())
+      .sort((a, b) => new Date(a.preferredDate) - new Date(b.preferredDate))[0];
+    return {
+      activeOrders: active.length,
+      completedOrders: completed.length,
+      upcomingPickup: upcoming ?? null,
+      monthlySpending: mockPickups.filter((p) => p.paymentStatus === 'paid').reduce((sum, p) => sum + p.pricing.amount, 0),
+      ordersThisMonth: mockPickups.length,
+      avgProcessingHours: null,
+    };
   }
-  const { data } = await apiClient.get('/business/properties');
-  return data;
+  const { data } = await apiClient.get('/business/overview');
+  return data.overview;
 }
 
-// Pushes a new job into the same shared pipeline Customer booking and
-// Driver/Partner read from — matches the design's "Request extra pickup"
-// behavior of injecting straight into the jobs queue.
-export async function requestExtraPickup({ businessEmail, propertyName }) {
-  if (env.useMockApi) {
-    await delay(350);
-    const order = {
-      id: nextId('LP'),
-      customerEmail: businessEmail,
-      customerName: propertyName,
-      vendorId: 'v-1',
-      stage: ORDER_STAGE.PICKUP_QUEUE,
-      services: [{ name: 'Commercial linen service', qty: 1, price: 42 }],
-      address: propertyName,
-      window: 'Next available window',
-      total: 42,
+export async function fetchPickups() {
+  if (env.useMockBusinessOps) {
+    await delay();
+    return [...mockPickups].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }
+  const { data } = await apiClient.get('/business/pickups');
+  return data.pickups;
+}
+
+export async function createPickup({ address, preferredDate, window, deliveryWindow, loadSize, foldStyle, notes }) {
+  if (env.useMockBusinessOps) {
+    await delay(400);
+    mockIdSeq += 1;
+    const pickup = {
+      _id: `bpk-${mockIdSeq}`,
+      address,
+      preferredDate,
+      window,
+      deliveryWindow,
+      loadSize,
+      foldStyle: foldStyle || 'standard',
+      notes: notes || '',
+      status: 'request_received',
+      pricing: { amount: 0, currency: 'usd', subtotal: 0, deliveryFee: 0 },
+      paymentStatus: 'unpaid',
       createdAt: new Date().toISOString(),
     };
-    orders.unshift(order);
-    return order;
+    mockPickups = [pickup, ...mockPickups];
+    return pickup;
   }
-  const { data } = await apiClient.post('/business/request-pickup', { propertyName });
-  return data;
-}
-
-export async function fetchInvoices() {
-  if (env.useMockApi) {
-    await delay();
-    return [
-      { id: 'inv-1', label: 'July 2026', orders: 18, amount: 612.4, status: 'Open' },
-      { id: 'inv-2', label: 'June 2026', orders: 22, amount: 748.9, status: 'Paid' },
-      { id: 'inv-3', label: 'May 2026', orders: 19, amount: 645.1, status: 'Paid' },
-    ];
-  }
-  const { data } = await apiClient.get('/business/invoices');
-  return data;
+  const { data } = await apiClient.post('/business/pickups', { address, preferredDate, window, deliveryWindow, loadSize, foldStyle, notes });
+  return data.pickup;
 }

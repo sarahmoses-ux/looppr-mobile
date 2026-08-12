@@ -27,11 +27,13 @@ export const env = {
   useMockBusinessAuth: resolveMockFlag(extra.useMockBusinessAuth, process.env.EXPO_PUBLIC_USE_MOCK_BUSINESS_AUTH),
   useMockPartnerAuth: resolveMockFlag(extra.useMockPartnerAuth, process.env.EXPO_PUBLIC_USE_MOCK_PARTNER_AUTH),
   useMockDriverAuth: resolveMockFlag(extra.useMockDriverAuth, process.env.EXPO_PUBLIC_USE_MOCK_DRIVER_AUTH),
-  // Same independence as the auth flags above, scoped to the residential
-  // pickups/addresses domain (pickups.api.js, addresses.api.js) — everything
-  // else non-auth (vendors, business/driver/partner data) still stays on
-  // useMockApi until those get wired up the same way.
+  // Same independence as the auth flags above, each scoped to one role's
+  // operational data domain (pickups/addresses for customer, deliveries for
+  // driver, orders for partner, pickups/overview for business).
   useMockCustomerOrders: resolveMockFlag(extra.useMockCustomerOrders, process.env.EXPO_PUBLIC_USE_MOCK_CUSTOMER_ORDERS),
+  useMockDriverOps: resolveMockFlag(extra.useMockDriverOps, process.env.EXPO_PUBLIC_USE_MOCK_DRIVER_OPS),
+  useMockPartnerOps: resolveMockFlag(extra.useMockPartnerOps, process.env.EXPO_PUBLIC_USE_MOCK_PARTNER_OPS),
+  useMockBusinessOps: resolveMockFlag(extra.useMockBusinessOps, process.env.EXPO_PUBLIC_USE_MOCK_BUSINESS_OPS),
   googleMapsApiKey: extra.googleMapsApiKey ?? process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '',
   stripePublishableKey: extra.stripePublishableKey ?? process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '',
 };

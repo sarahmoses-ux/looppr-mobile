@@ -34,7 +34,7 @@ export default function DriverRouteMap({ stops }) {
         {stops.map((stop, i) =>
           stop.location ? (
             <Marker
-              key={stop.id}
+              key={stop._id}
               coordinate={stop.location}
               title={`${i + 1}. ${stop.customerName}`}
               description={stop.address}

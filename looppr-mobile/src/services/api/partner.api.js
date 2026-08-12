@@ -1,35 +1,124 @@
 import { apiClient } from './client';
 import { env } from '../../config/env';
-import { orders } from './mock/db';
-import { ORDER_STAGE } from '../../constants/orderStages';
+import { PARTNER_STAGE } from '../../constants/partnerStage';
 
-function delay(ms = 250) {
+function delay(ms = 300) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const FACILITY_CAPACITY_PER_DAY = 40;
+// Mock store mirrors looppr-backend's shapeOrder() shape exactly (address
+// object, loadSize, partnerStage, pricing.amount, etc.) — not the old
+// vendor/services mock shape in mock/db.js.
+let mockIncoming = [
+  {
+    _id: 'ord-mock-1',
+    customerName: 'R. Chen',
+    address: { street: '512 Danforth Dr', apartment: '', city: 'Edmond', state: 'OK', zip: '73013' },
+    deliveryAddress: null,
+    loadSize: 'medium',
+    preferredDate: new Date().toISOString(),
+    window: 'afternoon',
+    deliveryWindow: 'afternoon',
+    notes: '',
+    paymentStatus: 'paid',
+    status: 'request_received',
+    partnerStage: null,
+    pricing: { amount: 31.8, currency: 'usd', subtotal: 26.81, deliveryFee: 4.99 },
+    createdAt: new Date().toISOString(),
+  },
+];
+let mockMine = [];
 
-export async function fetchFacilityCapacity({ vendorId }) {
-  if (env.useMockApi) {
+export async function fetchOverview() {
+  if (env.useMockPartnerOps) {
     await delay(150);
-    const bagsInFacility = orders.filter(
-      (o) => o.vendorId === vendorId && [ORDER_STAGE.WASHING, ORDER_STAGE.FOLDING_QC].includes(o.stage)
-    ).length;
-    return { bagsInFacility, capacityPerDay: FACILITY_CAPACITY_PER_DAY };
+    return {
+      newOrders: mockIncoming.length,
+      activeOrders: mockMine.filter((o) => o.partnerStage !== PARTNER_STAGE.DELIVERED).length,
+      completedOrders: mockMine.filter((o) => o.partnerStage === PARTNER_STAGE.DELIVERED).length,
+      monthlyRevenue: mockMine.reduce((sum, o) => sum + (o.paymentStatus === 'paid' ? o.pricing.amount : 0), 0),
+      averageRating: 4.9,
+    };
   }
-  const { data } = await apiClient.get('/partner/capacity', { params: { vendorId } });
+  const { data } = await apiClient.get('/partner/overview');
+  return data.overview;
+}
+
+export async function fetchEarnings() {
+  if (env.useMockPartnerOps) {
+    await delay(150);
+    const paid = mockMine.filter((o) => o.paymentStatus === 'paid');
+    const total = paid.reduce((sum, o) => sum + (o.pricing?.amount ?? 0), 0);
+    return { totalRevenue: total, weeklyRevenue: total, monthlyRevenue: total, pendingPayments: 0, completedPayouts: total };
+  }
+  const { data } = await apiClient.get('/partner/earnings');
+  return data.earnings;
+}
+
+export async function fetchIncomingOrders() {
+  if (env.useMockPartnerOps) {
+    await delay();
+    return mockIncoming;
+  }
+  const { data } = await apiClient.get('/partner/orders/incoming');
+  return data.orders;
+}
+
+export async function fetchMyOrders() {
+  if (env.useMockPartnerOps) {
+    await delay();
+    return [...mockMine].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }
+  const { data } = await apiClient.get('/partner/orders/mine');
+  return data.orders;
+}
+
+export async function acceptOrder({ orderId }) {
+  if (env.useMockPartnerOps) {
+    await delay(300);
+    const idx = mockIncoming.findIndex((o) => o._id === orderId);
+    if (idx === -1) throw new Error('This order is no longer available.');
+    const [order] = mockIncoming.splice(idx, 1);
+    order.partnerStage = PARTNER_STAGE.ACCEPTED;
+    order.partnerAcceptedAt = new Date().toISOString();
+    mockMine = [order, ...mockMine];
+    return order;
+  }
+  const { data } = await apiClient.post(`/partner/orders/${orderId}/accept`);
+  return data.order;
+}
+
+export async function rejectOrder({ orderId, reason }) {
+  if (env.useMockPartnerOps) {
+    await delay(250);
+    mockIncoming = mockIncoming.filter((o) => o._id !== orderId);
+    mockMine = mockMine.filter((o) => o._id !== orderId);
+    return { ok: true };
+  }
+  const { data } = await apiClient.post(`/partner/orders/${orderId}/reject`, { reason });
   return data;
 }
 
-export async function fetchPartnerPayouts({ vendorId }) {
-  if (env.useMockApi) {
-    await delay();
-    return [
-      { id: 'p-1', label: 'This week', bags: 62, ratePerLb: 1.15, total: 480.6, status: 'Pending' },
-      { id: 'p-2', label: 'Last week', bags: 71, ratePerLb: 1.15, total: 551.9, status: 'Paid' },
-      { id: 'p-3', label: '2 weeks ago', bags: 58, ratePerLb: 1.15, total: 452.4, status: 'Paid' },
-    ];
+export async function updateOrderStage({ orderId, action }) {
+  if (env.useMockPartnerOps) {
+    await delay(250);
+    const order = mockMine.find((o) => o._id === orderId);
+    if (!order) throw new Error('Order not found for this partner.');
+    order.partnerStage = action;
+    if (action === PARTNER_STAGE.PICKUP_COMPLETED) order.status = 'pickup';
+    if (action === PARTNER_STAGE.LAUNDRY_IN_PROGRESS) order.status = 'laundry_in_progress';
+    if (action === PARTNER_STAGE.READY_FOR_DELIVERY || action === PARTNER_STAGE.DELIVERED) order.status = 'ready_delivered';
+    return order;
   }
-  const { data } = await apiClient.get('/partner/payouts', { params: { vendorId } });
-  return data;
+  const { data } = await apiClient.patch(`/partner/orders/${orderId}/stage`, { action });
+  return data.order;
+}
+
+export async function updateAvailability({ availability }) {
+  if (env.useMockPartnerOps) {
+    await delay(200);
+    return { availability };
+  }
+  const { data } = await apiClient.patch('/partner/availability', { availability });
+  return data.partner;
 }
