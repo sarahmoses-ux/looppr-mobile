@@ -15,6 +15,16 @@ export const ROLE_GROUP = {
   [ROLES.DRIVER]: 'driver',
 };
 
+// A bare group redirect (e.g. "/(customer)") doesn't resolve to that group's
+// default tab reliably — expo-router needs the fully-qualified path. This is
+// each role's landing screen inside its (tabs) group.
+export const ROLE_HOME_ROUTE = {
+  [ROLES.RESIDENTIAL]: '/(customer)/(tabs)/home',
+  [ROLES.BUSINESS]: '/(business)/(tabs)/home',
+  [ROLES.PARTNER]: '/(partner)/(tabs)/queue',
+  [ROLES.DRIVER]: '/(driver)/(tabs)/route',
+};
+
 export const ROLE_LABEL = {
   [ROLES.RESIDENTIAL]: 'Residential Customer',
   [ROLES.BUSINESS]: 'Business Customer',
