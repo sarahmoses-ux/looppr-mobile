@@ -5,6 +5,10 @@ import * as Location from 'expo-location';
 import { colors } from '../../theme/tokens';
 
 const EDMOND_OK = { latitude: 35.6528, longitude: -97.4781 };
+const addressLine = (a) => (a ? `${a.street}${a.apartment ? `, ${a.apartment}` : ''}, ${a.city}` : '');
+// Backend stores/returns location as { lat, lng } (see PickupRequest.js) —
+// react-native-maps needs { latitude, longitude }.
+const toLatLng = (loc) => (loc?.lat != null && loc?.lng != null ? { latitude: loc.lat, longitude: loc.lng } : null);
 
 // Android needs a real Google Maps API key (see app.json's react-native-maps
 // plugin config) before tiles render in production — this still mounts
@@ -23,7 +27,7 @@ export default function DriverRouteMap({ stops }) {
   }, []);
 
   const region = {
-    ...(current ?? stops[0]?.location ?? EDMOND_OK),
+    ...(current ?? toLatLng(stops[0]?.location) ?? EDMOND_OK),
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
   };
@@ -31,17 +35,18 @@ export default function DriverRouteMap({ stops }) {
   return (
     <View style={{ height: 180, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
       <MapView style={{ flex: 1 }} initialRegion={region} showsUserLocation={Boolean(current)}>
-        {stops.map((stop, i) =>
-          stop.location ? (
+        {stops.map((stop, i) => {
+          const coordinate = toLatLng(stop.location);
+          return coordinate ? (
             <Marker
               key={stop._id}
-              coordinate={stop.location}
+              coordinate={coordinate}
               title={`${i + 1}. ${stop.customerName}`}
-              description={stop.address}
+              description={addressLine(stop.address)}
               pinColor={i === 0 ? colors.brand : colors.faint}
             />
-          ) : null
-        )}
+          ) : null;
+        })}
       </MapView>
       {Platform.OS === 'android' ? (
         <View style={{ position: 'absolute', bottom: 6, left: 6, right: 6 }}>

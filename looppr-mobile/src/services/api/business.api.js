@@ -1,5 +1,7 @@
 import { apiClient } from './client';
 import { env } from '../../config/env';
+import { estimateOrderPrice } from '../../features/customer/bookingOptions';
+import { PICKUP_STATUS } from '../../constants/pickupStatus';
 
 function delay(ms = 300) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -43,6 +45,7 @@ export async function fetchPickups() {
 export async function createPickup({ address, preferredDate, window, deliveryWindow, loadSize, foldStyle, notes }) {
   if (env.useMockBusinessOps) {
     await delay(400);
+    const priorOrderCount = mockPickups.filter((p) => p.status !== PICKUP_STATUS.CANCELLED).length;
     mockIdSeq += 1;
     const pickup = {
       _id: `bpk-${mockIdSeq}`,
@@ -54,7 +57,7 @@ export async function createPickup({ address, preferredDate, window, deliveryWin
       foldStyle: foldStyle || 'standard',
       notes: notes || '',
       status: 'request_received',
-      pricing: { amount: 0, currency: 'usd', subtotal: 0, deliveryFee: 0 },
+      pricing: estimateOrderPrice(loadSize, priorOrderCount),
       paymentStatus: 'unpaid',
       createdAt: new Date().toISOString(),
     };

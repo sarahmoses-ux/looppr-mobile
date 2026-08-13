@@ -28,6 +28,7 @@ let mockIncoming = [
   },
 ];
 let mockMine = [];
+let mockAvailability = 'online';
 
 export async function fetchOverview() {
   if (env.useMockPartnerOps) {
@@ -38,6 +39,7 @@ export async function fetchOverview() {
       completedOrders: mockMine.filter((o) => o.partnerStage === PARTNER_STAGE.DELIVERED).length,
       monthlyRevenue: mockMine.reduce((sum, o) => sum + (o.paymentStatus === 'paid' ? o.pricing.amount : 0), 0),
       averageRating: 4.9,
+      availability: mockAvailability,
     };
   }
   const { data } = await apiClient.get('/partner/overview');
@@ -117,7 +119,8 @@ export async function updateOrderStage({ orderId, action }) {
 export async function updateAvailability({ availability }) {
   if (env.useMockPartnerOps) {
     await delay(200);
-    return { availability };
+    mockAvailability = availability;
+    return { availability: mockAvailability };
   }
   const { data } = await apiClient.patch('/partner/availability', { availability });
   return data.partner;

@@ -15,6 +15,7 @@ let mockIncoming = [
     customerName: 'R. Chen',
     address: { street: '512 Danforth Dr', apartment: '', city: 'Edmond', state: 'OK', zip: '73013' },
     deliveryAddress: null,
+    location: { lat: 35.6528, lng: -97.4781 },
     loadSize: 'medium',
     actualWeightLbs: null,
     preferredDate: new Date().toISOString(),
@@ -29,6 +30,7 @@ let mockIncoming = [
   },
 ];
 let mockMine = [];
+let mockAvailability = 'available';
 
 export async function fetchOverview() {
   if (env.useMockDriverOps) {
@@ -39,7 +41,7 @@ export async function fetchOverview() {
       completedDeliveries: mockMine.filter((d) => d.driverStage === DRIVER_STAGE.DELIVERED).length,
       monthlyEarnings: mockMine.reduce((sum, d) => sum + (d.driverStage === DRIVER_STAGE.DELIVERED ? d.pricing.deliveryFee : 0), 0),
       averageRating: 4.8,
-      availability: 'available',
+      availability: mockAvailability,
     };
   }
   const { data } = await apiClient.get('/driver/overview');
@@ -137,7 +139,8 @@ export async function confirmWeight({ deliveryId, actualWeightLbs }) {
 export async function updateAvailability({ availability }) {
   if (env.useMockDriverOps) {
     await delay(200);
-    return { availability };
+    mockAvailability = availability === 'online' ? 'available' : 'offline';
+    return { availability: mockAvailability };
   }
   const { data } = await apiClient.patch('/driver/availability', { availability });
   return data.driver;
